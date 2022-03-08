@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomContact(t *testing.T) Contact {
+func CreateRandomContact(t *testing.T) Contact {
 	args := CreateContactParams{
 		Firstname:   randomdata.FirstName(randomdata.Female),
 		Lastname:    randomdata.LastName(),
@@ -35,11 +35,11 @@ func createRandomContact(t *testing.T) Contact {
 	return contact
 }
 func TestCreateContact(t *testing.T) {
-	createRandomContact(t)
+	CreateRandomContact(t)
 }
 
 func TestGetContact(t *testing.T) {
-	contact1 := createRandomContact(t)
+	contact1 := CreateRandomContact(t)
 	contact2, err := testQueries.GetContact(context.Background(), contact1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, contact2)
@@ -54,7 +54,7 @@ func TestGetContact(t *testing.T) {
 }
 
 func TestUpdateContact(t *testing.T) {
-	contact1 := createRandomContact(t)
+	contact1 := CreateRandomContact(t)
 
 	args := UpdateContactParams{
 		ID:          contact1.ID,
@@ -80,7 +80,7 @@ func TestUpdateContact(t *testing.T) {
 }
 
 func TestDeleteContact(t *testing.T) {
-	contact1 := createRandomContact(t)
+	contact1 := CreateRandomContact(t)
 	err := testQueries.DeleteContact(context.Background(), contact1.ID)
 	require.NoError(t, err)
 
@@ -92,7 +92,7 @@ func TestDeleteContact(t *testing.T) {
 
 func TestListContacts(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		createRandomContact(t)
+		CreateRandomContact(t)
 	}
 
 	args := ListContactsParams{
@@ -107,4 +107,81 @@ func TestListContacts(t *testing.T) {
 	for _, contact := range contacts {
 		require.NotEmpty(t, contact)
 	}
+}
+
+func TestGetContactsWithSkillAndLevel(t *testing.T) {
+	// Create a random contact.
+	originalContact := CreateRandomContact(t)
+	// Create a random skill.
+	skill := CreateRandomSkill(t)
+
+	// Bind a contact with a skill
+	argsContactHasSkill := CreateContactHasSkillParams{
+		ContactID: int32(originalContact.ID),
+		SkillID:   int32(skill.ID),
+	}
+
+	contactHasSkill, err := testQueries.CreateContactHasSkill(context.Background(), argsContactHasSkill)
+	require.NoError(t, err)
+	require.NotEmpty(t, contactHasSkill)
+
+	argsContactsWithSkillAndLevelParams := GetContactsWithSkillAndLevelParams{
+		SkillName:  skill.SkillName,
+		SkillLevel: skill.SkillLevel,
+	}
+
+	contacts, err := testQueries.GetContactsWithSkillAndLevel(context.Background(), argsContactsWithSkillAndLevelParams)
+	require.NoError(t, err)
+	require.Len(t, contacts, 1)
+
+	for _, contact := range contacts {
+		require.NotEmpty(t, contact)
+
+		require.Equal(t, originalContact.ID, contact.ID)
+		require.Equal(t, originalContact.Firstname, contact.Firstname)
+		require.Equal(t, originalContact.Lastname, contact.Lastname)
+		require.Equal(t, originalContact.Fullname, contact.Fullname)
+		require.Equal(t, originalContact.HomeAddress, contact.HomeAddress)
+		require.Equal(t, originalContact.Email, contact.Email)
+		require.Equal(t, originalContact.PhoneNumber, contact.PhoneNumber)
+	}
+
+	err = testQueries.DeleteSkill(context.Background(), skill.ID)
+	require.NoError(t, err)
+}
+
+func TestGetContactsWithSkill(t *testing.T) {
+	// Create a random contact.
+	originalContact := CreateRandomContact(t)
+	// Create a random skill.
+	skill := CreateRandomSkill(t)
+
+	// Bind a contact with a skill
+	argsContactHasSkill := CreateContactHasSkillParams{
+		ContactID: int32(originalContact.ID),
+		SkillID:   int32(skill.ID),
+	}
+
+	contactHasSkill, err := testQueries.CreateContactHasSkill(context.Background(), argsContactHasSkill)
+	require.NoError(t, err)
+	require.NotEmpty(t, contactHasSkill)
+
+	contacts, err := testQueries.GetContactsWithSkill(context.Background(), skill.SkillName)
+	require.NoError(t, err)
+	require.Len(t, contacts, 1)
+
+	for _, contact := range contacts {
+		require.NotEmpty(t, contact)
+
+		require.Equal(t, originalContact.ID, contact.ID)
+		require.Equal(t, originalContact.Firstname, contact.Firstname)
+		require.Equal(t, originalContact.Lastname, contact.Lastname)
+		require.Equal(t, originalContact.Fullname, contact.Fullname)
+		require.Equal(t, originalContact.HomeAddress, contact.HomeAddress)
+		require.Equal(t, originalContact.Email, contact.Email)
+		require.Equal(t, originalContact.PhoneNumber, contact.PhoneNumber)
+	}
+
+	err = testQueries.DeleteSkill(context.Background(), skill.ID)
+	require.NoError(t, err)
 }

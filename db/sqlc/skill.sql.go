@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createSkill = `-- name: CreateSkill :one
@@ -19,8 +18,8 @@ RETURNING id, skill_name, skill_level
 `
 
 type CreateSkillParams struct {
-	SkillName  sql.NullString `json:"skill_name"`
-	SkillLevel sql.NullString `json:"skill_level"`
+	SkillName  string `json:"skill_name"`
+	SkillLevel string `json:"skill_level"`
 }
 
 func (q *Queries) CreateSkill(ctx context.Context, arg CreateSkillParams) (Skill, error) {
@@ -95,9 +94,9 @@ RETURNING id, skill_name, skill_level
 `
 
 type UpdateSkillParams struct {
-	ID         int64          `json:"id"`
-	SkillName  sql.NullString `json:"skill_name"`
-	SkillLevel sql.NullString `json:"skill_level"`
+	ID         int64  `json:"id"`
+	SkillName  string `json:"skill_name"`
+	SkillLevel string `json:"skill_level"`
 }
 
 func (q *Queries) UpdateSkill(ctx context.Context, arg UpdateSkillParams) (Skill, error) {

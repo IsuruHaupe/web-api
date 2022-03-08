@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createContact = `-- name: CreateContact :one
@@ -95,7 +94,7 @@ WHERE id IN (
   )
 `
 
-func (q *Queries) GetContactsWithSkill(ctx context.Context, skillName sql.NullString) ([]Contact, error) {
+func (q *Queries) GetContactsWithSkill(ctx context.Context, skillName string) ([]Contact, error) {
 	rows, err := q.db.QueryContext(ctx, getContactsWithSkill, skillName)
 	if err != nil {
 		return nil, err
@@ -140,8 +139,8 @@ WHERE id IN (
 `
 
 type GetContactsWithSkillAndLevelParams struct {
-	SkillName  sql.NullString `json:"skill_name"`
-	SkillLevel sql.NullString `json:"skill_level"`
+	SkillName  string `json:"skill_name"`
+	SkillLevel string `json:"skill_level"`
 }
 
 func (q *Queries) GetContactsWithSkillAndLevel(ctx context.Context, arg GetContactsWithSkillAndLevelParams) ([]Contact, error) {

@@ -2,9 +2,7 @@
 
 package db
 
-import (
-	"database/sql"
-)
+import ()
 
 type Contact struct {
 	ID          int64  `json:"id"`
@@ -22,7 +20,7 @@ type ContactHasSkill struct {
 }
 
 type Skill struct {
-	ID         int64          `json:"id"`
-	SkillName  sql.NullString `json:"skill_name"`
-	SkillLevel sql.NullString `json:"skill_level"`
+	ID         int64  `json:"id"`
+	SkillName  string `json:"skill_name"`
+	SkillLevel string `json:"skill_level"`
 }
