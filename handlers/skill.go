@@ -1,5 +1,6 @@
 package handlers
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -50,3 +51,4 @@ func (ch *ContactHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Unrecognised Query type, expected POST request !")
 	}
 }
+*/

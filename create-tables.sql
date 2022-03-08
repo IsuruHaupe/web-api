@@ -1,6 +1,6 @@
 use web_api_database;
 
-DROP TABLE IF EXISTS person_has_contact;
+/*DROP TABLE IF EXISTS person_has_contact;*/
 
 DROP TABLE IF EXISTS contact_have_skills;
 
@@ -8,28 +8,30 @@ DROP TABLE IF EXISTS person;
 
 DROP TABLE IF EXISTS skills;
 
+/* rajouter owner */
 CREATE TABLE person (
   id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, 
-  firstname VARCHAR(255),
-  lastname VARCHAR(255), 
-  fullname VARCHAR(255), 
-  home_address VARCHAR(255), 
-  email VARCHAR(255), 
-  phone_number VARCHAR(255)
+  firstname VARCHAR(255) NOT NULL,
+  lastname VARCHAR(255) NOT NULL,
+  fullname VARCHAR(255) NOT NULL,
+  home_address VARCHAR(255) NOT NULL, 
+  email VARCHAR(255) NOT NULL,
+  phone_number VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE skills (
   id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, 
-  skill_name VARCHAR(50), 
-  skill_level ENUM('Familiar', 'Proficient', 'Excellent', 'Expert')
+  skill_name VARCHAR(50) NOT NULL,
+  skill_level ENUM('Familiar', 'Proficient', 'Excellent', 'Expert') NOT NULL
 );
 
-CREATE TABLE person_has_contact (
+/* A SUPPRIMER 
+CREATE TABLE person_has_contact (i
   person_id INT NOT NULL, 
   contact_id INT NOT NULL, 
   CONSTRAINT has_contact FOREIGN KEY (person_id) REFERENCES person(id) ON DELETE CASCADE,
   CONSTRAINT is_contact FOREIGN KEY (contact_id) REFERENCES person(id) ON DELETE CASCADE
-);
+);*/
 
 CREATE TABLE contact_have_skills (
   person_id INT NOT NULL, 
@@ -51,12 +53,6 @@ INSERT INTO person (firstname, lastname, fullname, home_address, email, phone_nu
    ('Go', 'Proficient'), 
    ('Scala', 'Proficient'), 
    ('Java', 'Excellent');
-
-INSERT INTO person_has_contact (person_id, contact_id)
-VALUES
-(1, 2),
-(2, 3),
-(1, 3);
 
 INSERT INTO contact_have_skills (person_id, skill_id)
 VALUES

@@ -1,5 +1,6 @@
 package handlers
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -24,6 +25,7 @@ func NewContactHandler(db database.Database) *ContactHandler {
 func (ch *ContactHandler) CreateContact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	//rename var
 	var c types.Contact
 	switch r.Method {
 	case "POST":
@@ -139,3 +141,4 @@ func (ch *ContactHandler) GetContact(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Unrecognised Query type, expected GET request !")
 	}
 }
+*/

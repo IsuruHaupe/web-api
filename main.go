@@ -1,6 +1,7 @@
 // forms.go
 package main
 
+/*
 import (
 	"fmt"
 	"log"
@@ -32,3 +33,4 @@ func main() {
 func HelloServer(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, World!")
 }
+*/
