@@ -222,6 +222,17 @@ func (q *Queries) GetHomeAddress(ctx context.Context, id int64) (string, error) 
 	return home_address, err
 }
 
+const getIfExistsID = `-- name: GetIfExistsID :one
+SELECT EXISTS (SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts WHERE id = $1)
+`
+
+func (q *Queries) GetIfExistsID(ctx context.Context, id int64) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getIfExistsID, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getLastname = `-- name: GetLastname :one
 SELECT lastname FROM contacts
 WHERE id = $1 LIMIT 1

@@ -7,3 +7,7 @@
 # sqlc 
 
 # testify 
+
+# viper
+
+# mockgen

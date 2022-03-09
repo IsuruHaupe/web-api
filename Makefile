@@ -25,4 +25,7 @@ tests:
 server: 
 	go run main.go
 
-.PHONY: postgres createdb dropdb migrateforce migrateup migratedown sqlc tests server
+mock: 
+	mockgen -package mockdb -destination db/mock/database.go github.com/IsuruHaupe/web-api/db/postgres Database
+
+.PHONY: postgres createdb dropdb migrateforce migrateup migratedown sqlc tests server mock

@@ -6,20 +6,19 @@ import (
 	"os"
 	"testing"
 
+	"github.com/IsuruHaupe/web-api/config"
 	_ "github.com/lib/pq"
-)
-
-const (
-	dbDriver = "postgres"
-	dbSource = "postgresql://root:secret@localhost:5432/web-api?sslmode=disable"
 )
 
 var testDB *sql.DB
 var testQueries *Queries
 
 func TestMain(m *testing.M) {
-	var err error
-	testDB, err = sql.Open(dbDriver, dbSource)
+	config, err := config.LoadConfig("../..")
+	if err != nil {
+		log.Fatal("Error when loading configuration in tests : ", err)
+	}
+	testDB, err = sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to the database : ", err)
 	}

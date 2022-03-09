@@ -1,18 +1,18 @@
 package api
 
 import (
-	"github.com/IsuruHaupe/web-api/postgres"
+	"github.com/IsuruHaupe/web-api/db/postgres"
 	"github.com/gin-gonic/gin"
 )
 
 // This struct is used to regroup the database connection and the gin router.
 type Server struct {
-	database *postgres.PostgresDatabase
+	database postgres.Database
 	router   *gin.Engine
 }
 
 // This function will create a new server and setup all routes.
-func NewServer(database *postgres.PostgresDatabase) *Server {
+func NewServer(database postgres.Database) *Server {
 	server := &Server{
 		database: database,
 	}
