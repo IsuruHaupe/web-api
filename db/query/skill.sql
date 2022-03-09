@@ -7,6 +7,9 @@ INSERT INTO skills (
 )
 RETURNING *;
 
+-- name: GetIfExistsSkillID :one 
+SELECT EXISTS (SELECT * FROM skills WHERE id = $1);
+
 -- name: GetSkillName :one
 SELECT skill_name FROM skills
 WHERE id = $1 LIMIT 1;

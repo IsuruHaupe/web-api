@@ -38,6 +38,17 @@ func (q *Queries) DeleteSkill(ctx context.Context, id int64) error {
 	return err
 }
 
+const getIfExistsSkillID = `-- name: GetIfExistsSkillID :one
+SELECT EXISTS (SELECT id, skill_name, skill_level FROM skills WHERE id = $1)
+`
+
+func (q *Queries) GetIfExistsSkillID(ctx context.Context, id int64) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getIfExistsSkillID, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getSkill = `-- name: GetSkill :one
 SELECT id, skill_name, skill_level FROM skills
 WHERE id = $1 LIMIT 1

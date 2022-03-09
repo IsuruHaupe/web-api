@@ -22,10 +22,10 @@ func TestGetContactAPI(t *testing.T) {
 	contact := randomContact()
 
 	testCases := []struct {
-		name         string
-		contactID    int64
-		buildStubs   func(database *mockdb.MockDatabase)
-		checkReponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+		name          string
+		contactID     int64
+		buildStubs    func(database *mockdb.MockDatabase)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:      "Test PASS",
@@ -36,7 +36,7 @@ func TestGetContactAPI(t *testing.T) {
 					Times(1).
 					Return(contact, nil)
 			},
-			checkReponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchContact(t, recorder.Body, contact)
 			},
@@ -50,7 +50,7 @@ func TestGetContactAPI(t *testing.T) {
 					Times(1).
 					Return(db.Contact{}, sql.ErrNoRows)
 			},
-			checkReponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
 			},
 		},
@@ -63,7 +63,7 @@ func TestGetContactAPI(t *testing.T) {
 					Times(1).
 					Return(db.Contact{}, sql.ErrConnDone)
 			},
-			checkReponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
@@ -75,7 +75,7 @@ func TestGetContactAPI(t *testing.T) {
 					GetContact(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkReponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
@@ -103,19 +103,255 @@ func TestGetContactAPI(t *testing.T) {
 			server.router.ServeHTTP(recorder, request)
 
 			// Check results.
-			currentTest.checkReponse(t, recorder)
+			currentTest.checkResponse(t, recorder)
+		})
+	}
+}
+
+func TestGetContactsWithSkillAPI(t *testing.T) {
+	n := 5
+	contacts := make([]db.Contact, n)
+	for i := 0; i < n; i++ {
+		contacts[i] = randomContact()
+	}
+
+	type Query struct {
+		skillName string
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(database *mockdb.MockDatabase)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				skillName: "Go",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+
+				database.EXPECT().
+					GetContactsWithSkill(gomock.Any(), gomock.Eq("Go")).
+					Times(1).
+					Return(contacts, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchContacts(t, recorder.Body, contacts)
+			},
+		},
+		{
+			name: "InternalError",
+			query: Query{
+				skillName: "10",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactsWithSkill(gomock.Any(), gomock.Eq("10")).
+					Times(1).
+					Return([]db.Contact{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "InvalidPageID",
+			query: Query{
+				skillName: "",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactsWithSkill(gomock.Any(), gomock.Eq("")).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "NoFound",
+			query: Query{
+				skillName: "Scala",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactsWithSkill(gomock.Any(), gomock.Eq("Scala")).
+					Times(1).
+					Return([]db.Contact{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		currentTest := testCases[i]
+
+		t.Run(currentTest.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			database := mockdb.NewMockDatabase(ctrl)
+			currentTest.buildStubs(database)
+
+			server := NewServer(database)
+			recorder := httptest.NewRecorder()
+
+			url := "/contacts-with-skill"
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			// Add query parameters to request URL
+			q := request.URL.Query()
+			q.Add("skill_name", currentTest.query.skillName)
+			request.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, request)
+			currentTest.checkResponse(t, recorder)
+		})
+	}
+}
+
+func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
+	n := 5
+	contacts := make([]db.Contact, n)
+	for i := 0; i < n; i++ {
+		contacts[i] = randomContact()
+	}
+
+	type Query struct {
+		skillName  string
+		skillLevel string
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(database *mockdb.MockDatabase)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				skillName:  "Go",
+				skillLevel: "Proficient",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.GetContactsWithSkillAndLevelParams{
+					SkillName:  "Go",
+					SkillLevel: "Proficient",
+				}
+				database.EXPECT().
+					GetContactsWithSkillAndLevel(gomock.Any(), gomock.Eq(arg)).
+					Times(1).
+					Return(contacts, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				//requireBodyMatchContacts(t, recorder.Body, contacts)
+			},
+		},
+		{
+			name: "InternalError",
+			query: Query{
+				skillName:  "10",
+				skillLevel: "Proficient",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.GetContactsWithSkillAndLevelParams{
+					SkillName:  "10",
+					SkillLevel: "Proficient",
+				}
+				database.EXPECT().
+					GetContactsWithSkillAndLevel(gomock.Any(), gomock.Eq(arg)).
+					Times(1).
+					Return([]db.Contact{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "InvalidPageID",
+			query: Query{
+				skillName:  "",
+				skillLevel: "Proficient",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.GetContactsWithSkillAndLevelParams{
+					SkillName:  "",
+					SkillLevel: "Proficient",
+				}
+				database.EXPECT().
+					GetContactsWithSkillAndLevel(gomock.Any(), gomock.Eq(arg)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "NoFound",
+			query: Query{
+				skillName:  "Go",
+				skillLevel: "Proficient",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.GetContactsWithSkillAndLevelParams{
+					SkillName:  "Go",
+					SkillLevel: "Proficient",
+				}
+				database.EXPECT().
+					GetContactsWithSkillAndLevel(gomock.Any(), gomock.Eq(arg)).
+					Times(1).
+					Return([]db.Contact{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		currentTest := testCases[i]
+
+		t.Run(currentTest.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			database := mockdb.NewMockDatabase(ctrl)
+			currentTest.buildStubs(database)
+
+			server := NewServer(database)
+			recorder := httptest.NewRecorder()
+
+			url := "/contacts-with-skill-and-level"
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			// Add query parameters to request URL
+			q := request.URL.Query()
+			q.Add("skill_name", currentTest.query.skillName)
+			q.Add("skill_level", currentTest.query.skillLevel)
+			request.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, request)
+			currentTest.checkResponse(t, recorder)
 		})
 	}
 }
 
 func TestCreateContactAPI(t *testing.T) {
 	contact := randomContact()
-
 	testCases := []struct {
 		name          string
 		body          gin.H
 		buildStubs    func(database *mockdb.MockDatabase)
-		checkResponse func(recorder *httptest.ResponseRecorder)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "Test PASS",
@@ -142,7 +378,7 @@ func TestCreateContactAPI(t *testing.T) {
 					Times(1).
 					Return(contact, nil)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchContact(t, recorder.Body, contact)
 			},
@@ -163,7 +399,7 @@ func TestCreateContactAPI(t *testing.T) {
 					Times(1).
 					Return(db.Contact{}, sql.ErrConnDone)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
@@ -183,7 +419,7 @@ func TestCreateContactAPI(t *testing.T) {
 					Times(0).
 					Return(db.Contact{}, sql.ErrConnDone)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
@@ -211,7 +447,7 @@ func TestCreateContactAPI(t *testing.T) {
 			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
-			currentTest.checkResponse(recorder)
+			currentTest.checkResponse(t, recorder)
 		})
 	}
 }
@@ -232,7 +468,7 @@ func TestListContactsAPI(t *testing.T) {
 		name          string
 		query         Query
 		buildStubs    func(database *mockdb.MockDatabase)
-		checkResponse func(recorder *httptest.ResponseRecorder)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "OK",
@@ -251,7 +487,7 @@ func TestListContactsAPI(t *testing.T) {
 					Times(1).
 					Return(contacts, nil)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchContacts(t, recorder.Body, contacts)
 			},
@@ -268,7 +504,7 @@ func TestListContactsAPI(t *testing.T) {
 					Times(1).
 					Return([]db.Contact{}, sql.ErrConnDone)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
@@ -283,7 +519,7 @@ func TestListContactsAPI(t *testing.T) {
 					ListContacts(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
@@ -298,7 +534,7 @@ func TestListContactsAPI(t *testing.T) {
 					ListContacts(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
@@ -328,7 +564,7 @@ func TestListContactsAPI(t *testing.T) {
 			request.URL.RawQuery = q.Encode()
 
 			server.router.ServeHTTP(recorder, request)
-			currentTest.checkResponse(recorder)
+			currentTest.checkResponse(t, recorder)
 		})
 	}
 }
@@ -413,7 +649,7 @@ func TestUpdateContactAPI(t *testing.T) {
 		name          string
 		body          gin.H
 		buildStubs    func(database *mockdb.MockDatabase)
-		checkResponse func(recorder *httptest.ResponseRecorder)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "Test PASS",
@@ -428,10 +664,10 @@ func TestUpdateContactAPI(t *testing.T) {
 					Return(contact, nil)
 
 				database.EXPECT().
-					GetIfExistsID(gomock.Any(), gomock.Eq(contact.ID)).
+					GetIfExistsContactID(gomock.Any(), gomock.Eq(contact.ID)).
 					Times(1)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchContact(t, recorder.Body, contact)
 			},
@@ -447,7 +683,7 @@ func TestUpdateContactAPI(t *testing.T) {
 					UpdateContact(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
@@ -463,10 +699,10 @@ func TestUpdateContactAPI(t *testing.T) {
 					Times(1).
 					Return(db.Contact{}, sql.ErrNoRows)
 				database.EXPECT().
-					GetIfExistsID(gomock.Any(), gomock.Eq(contact.ID)).
+					GetIfExistsContactID(gomock.Any(), gomock.Eq(contact.ID)).
 					Times(1)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
 			},
 		},
@@ -482,10 +718,10 @@ func TestUpdateContactAPI(t *testing.T) {
 					Times(1).
 					Return(db.Contact{}, sql.ErrConnDone)
 				database.EXPECT().
-					GetIfExistsID(gomock.Any(), gomock.Eq(contact.ID)).
+					GetIfExistsContactID(gomock.Any(), gomock.Eq(contact.ID)).
 					Times(1)
 			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
@@ -513,7 +749,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
-			currentTest.checkResponse(recorder)
+			currentTest.checkResponse(t, recorder)
 		})
 	}
 }

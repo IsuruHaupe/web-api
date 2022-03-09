@@ -129,7 +129,7 @@ type updateContactRequest struct {
 }
 
 func contactPreviousValues(ctx *gin.Context, req *updateContactRequest, server *Server) {
-	exists, err := server.database.GetIfExistsID(ctx, req.ID)
+	exists, err := server.database.GetIfExistsContactID(ctx, req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

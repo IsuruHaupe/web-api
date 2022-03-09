@@ -11,7 +11,7 @@ INSERT INTO contacts (
 )
 RETURNING *;
 
--- name: GetIfExistsID :one 
+-- name: GetIfExistsContactID :one 
 SELECT EXISTS (SELECT * FROM contacts WHERE id = $1);
 
 -- name: GetFirstname :one

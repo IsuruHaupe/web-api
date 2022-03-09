@@ -117,13 +117,12 @@ type updateSkillRequest struct {
 }
 
 func skillPreviousValues(ctx *gin.Context, req *updateSkillRequest, server *Server) {
-	exists, err := server.database.GetIfExistsID(ctx, req.ID)
+	exists, err := server.database.GetIfExistsSkillID(ctx, req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 	if !exists {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
