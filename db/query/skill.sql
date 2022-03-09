@@ -7,6 +7,14 @@ INSERT INTO skills (
 )
 RETURNING *;
 
+-- name: GetSkillName :one
+SELECT skill_name FROM skills
+WHERE id = $1 LIMIT 1;
+
+-- name: GetSkillLevel :one
+SELECT skill_level FROM skills
+WHERE id = $1 LIMIT 1;
+
 
 -- name: GetSkill :one
 SELECT * FROM skills

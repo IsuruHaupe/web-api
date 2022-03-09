@@ -100,7 +100,7 @@ func (q *Queries) GetContactsWithSkill(ctx context.Context, skillName string) ([
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Contact
+	items := []Contact{}
 	for rows.Next() {
 		var i Contact
 		if err := rows.Scan(
@@ -149,7 +149,7 @@ func (q *Queries) GetContactsWithSkillAndLevel(ctx context.Context, arg GetConta
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Contact
+	items := []Contact{}
 	for rows.Next() {
 		var i Contact
 		if err := rows.Scan(
@@ -174,6 +174,78 @@ func (q *Queries) GetContactsWithSkillAndLevel(ctx context.Context, arg GetConta
 	return items, nil
 }
 
+const getEmail = `-- name: GetEmail :one
+SELECT email FROM contacts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetEmail(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getEmail, id)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}
+
+const getFirstname = `-- name: GetFirstname :one
+SELECT firstname FROM contacts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetFirstname(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getFirstname, id)
+	var firstname string
+	err := row.Scan(&firstname)
+	return firstname, err
+}
+
+const getFullname = `-- name: GetFullname :one
+SELECT fullname FROM contacts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetFullname(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getFullname, id)
+	var fullname string
+	err := row.Scan(&fullname)
+	return fullname, err
+}
+
+const getHomeAddress = `-- name: GetHomeAddress :one
+SELECT home_address FROM contacts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetHomeAddress(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getHomeAddress, id)
+	var home_address string
+	err := row.Scan(&home_address)
+	return home_address, err
+}
+
+const getLastname = `-- name: GetLastname :one
+SELECT lastname FROM contacts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetLastname(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getLastname, id)
+	var lastname string
+	err := row.Scan(&lastname)
+	return lastname, err
+}
+
+const getPhoneNumber = `-- name: GetPhoneNumber :one
+SELECT phone_number FROM contacts
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetPhoneNumber(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getPhoneNumber, id)
+	var phone_number string
+	err := row.Scan(&phone_number)
+	return phone_number, err
+}
+
 const listContacts = `-- name: ListContacts :many
 SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
 ORDER BY id
@@ -192,7 +264,7 @@ func (q *Queries) ListContacts(ctx context.Context, arg ListContactsParams) ([]C
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Contact
+	items := []Contact{}
 	for rows.Next() {
 		var i Contact
 		if err := rows.Scan(

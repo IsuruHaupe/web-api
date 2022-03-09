@@ -11,6 +11,30 @@ INSERT INTO contacts (
 )
 RETURNING *;
 
+-- name: GetFirstname :one
+SELECT firstname FROM contacts
+WHERE id = $1 LIMIT 1;
+
+-- name: GetLastname :one
+SELECT lastname FROM contacts
+WHERE id = $1 LIMIT 1;
+
+-- name: GetFullname :one
+SELECT fullname FROM contacts
+WHERE id = $1 LIMIT 1;
+
+-- name: GetHomeAddress :one
+SELECT home_address FROM contacts
+WHERE id = $1 LIMIT 1;
+
+-- name: GetEmail :one
+SELECT email FROM contacts
+WHERE id = $1 LIMIT 1;
+
+-- name: GetPhoneNumber :one
+SELECT phone_number FROM contacts
+WHERE id = $1 LIMIT 1;
+
 -- name: GetContact :one
 SELECT * FROM contacts
 WHERE id = $1 LIMIT 1;

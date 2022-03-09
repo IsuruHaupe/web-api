@@ -50,6 +50,30 @@ func (q *Queries) GetSkill(ctx context.Context, id int64) (Skill, error) {
 	return i, err
 }
 
+const getSkillLevel = `-- name: GetSkillLevel :one
+SELECT skill_level FROM skills
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetSkillLevel(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getSkillLevel, id)
+	var skill_level string
+	err := row.Scan(&skill_level)
+	return skill_level, err
+}
+
+const getSkillName = `-- name: GetSkillName :one
+SELECT skill_name FROM skills
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetSkillName(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getSkillName, id)
+	var skill_name string
+	err := row.Scan(&skill_name)
+	return skill_name, err
+}
+
 const listSkills = `-- name: ListSkills :many
 SELECT id, skill_name, skill_level FROM skills
 ORDER BY id
@@ -68,7 +92,7 @@ func (q *Queries) ListSkills(ctx context.Context, arg ListSkillsParams) ([]Skill
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Skill
+	items := []Skill{}
 	for rows.Next() {
 		var i Skill
 		if err := rows.Scan(&i.ID, &i.SkillName, &i.SkillLevel); err != nil {
