@@ -13,9 +13,10 @@ import (
 var randomProgLang = [...]string{"Go", "Java", "Javascript", "C++", "Python", "R", "HTML"}
 var randomProfLvl = [...]string{"Familiar", "Proficient", "Excellent", "Expert"}
 
-func CreateRandomSkill(t *testing.T) Skill {
+func CreateRandomSkill(t *testing.T, user User) Skill {
 	rand.Seed(time.Now().UnixNano())
 	args := CreateSkillParams{
+		Owner:      user.Username,
 		SkillName:  randomProgLang[rand.Intn(len(randomProgLang))],
 		SkillLevel: randomProfLvl[rand.Intn(len(randomProfLvl))],
 	}
@@ -32,12 +33,15 @@ func CreateRandomSkill(t *testing.T) Skill {
 }
 
 func TestCreateSkill(t *testing.T) {
-	skill := CreateRandomSkill(t)
-	err := testQueries.DeleteSkill(context.Background(), skill.ID)
+	user := CreateRandomUser(t)
+	CreateRandomSkill(t, user)
+
+	err := testQueries.DeleteUser(context.Background(), user.Username)
 	require.NoError(t, err)
 }
 func TestDeleteSkill(t *testing.T) {
-	skill1 := CreateRandomSkill(t)
+	user := CreateRandomUser(t)
+	skill1 := CreateRandomSkill(t, user)
 	err := testQueries.DeleteSkill(context.Background(), skill1.ID)
 	require.NoError(t, err)
 
@@ -45,10 +49,15 @@ func TestDeleteSkill(t *testing.T) {
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, skill2)
+
+	err = testQueries.DeleteUser(context.Background(), user.Username)
+	require.NoError(t, err)
 }
 
 func TestUniqueConstraintOnSkill(t *testing.T) {
+	user := CreateRandomUser(t)
 	args := CreateSkillParams{
+		Owner:      user.Username,
 		SkillName:  "same",
 		SkillLevel: "same",
 	}
@@ -64,10 +73,14 @@ func TestUniqueConstraintOnSkill(t *testing.T) {
 	require.NoError(t, err)
 	err = testQueries.DeleteSkill(context.Background(), skill2.ID)
 	require.NoError(t, err)
+
+	err = testQueries.DeleteUser(context.Background(), user.Username)
+	require.NoError(t, err)
 }
 
 func TestGetSkill(t *testing.T) {
-	skill1 := CreateRandomSkill(t)
+	user := CreateRandomUser(t)
+	skill1 := CreateRandomSkill(t, user)
 	skill2, err := testQueries.GetSkill(context.Background(), skill1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, skill2)
@@ -80,13 +93,16 @@ func TestGetSkill(t *testing.T) {
 	require.NoError(t, err)
 	err = testQueries.DeleteSkill(context.Background(), skill2.ID)
 	require.NoError(t, err)
+
+	err = testQueries.DeleteUser(context.Background(), user.Username)
+	require.NoError(t, err)
 }
 
-func createMultipleSkills(t *testing.T) []int64 {
+func createMultipleSkills(t *testing.T, user User) {
 	randomProgLangLength := len(randomProgLang)
-	skillsID := make([]int64, randomProgLangLength)
 	for i := 0; i < randomProgLangLength; i++ {
 		args := CreateSkillParams{
+			Owner:      user.Username,
 			SkillName:  randomProgLang[i],
 			SkillLevel: randomProfLvl[rand.Intn(len(randomProfLvl))],
 		}
@@ -99,23 +115,15 @@ func createMultipleSkills(t *testing.T) []int64 {
 		require.Equal(t, args.SkillLevel, skill.SkillLevel)
 
 		require.NotZero(t, skill.ID)
-		skillsID[i] = skill.ID
-	}
-
-	return skillsID
-}
-
-func removeMultipleSkills(t *testing.T, skillsID []int64) {
-	for i := 0; i < len(skillsID); i++ {
-		err := testQueries.DeleteSkill(context.Background(), skillsID[i])
-		require.NoError(t, err)
 	}
 }
 
 func TestListSkills(t *testing.T) {
-	skillsID := createMultipleSkills(t)
+	user := CreateRandomUser(t)
+	createMultipleSkills(t, user)
 
 	args := ListSkillsParams{
+		Owner:  user.Username,
 		Limit:  5,
 		Offset: 1,
 	}
@@ -127,11 +135,13 @@ func TestListSkills(t *testing.T) {
 	for _, skill := range skills {
 		require.NotEmpty(t, skill)
 	}
-	removeMultipleSkills(t, skillsID)
+	err = testQueries.DeleteUser(context.Background(), user.Username)
+	require.NoError(t, err)
 }
 
 func TestUpdateSkill(t *testing.T) {
-	skill1 := CreateRandomSkill(t)
+	user := CreateRandomUser(t)
+	skill1 := CreateRandomSkill(t, user)
 
 	rand.Seed(time.Now().UnixNano())
 	args := UpdateSkillParams{
@@ -148,7 +158,7 @@ func TestUpdateSkill(t *testing.T) {
 	require.Equal(t, args.SkillName, skill2.SkillName)
 	require.Equal(t, args.SkillLevel, skill2.SkillLevel)
 
-	err = testQueries.DeleteSkill(context.Background(), skill2.ID)
+	err = testQueries.DeleteUser(context.Background(), user.Username)
 	require.NoError(t, err)
 
 }

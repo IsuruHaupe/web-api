@@ -1,3 +1,4 @@
-DROP TABLE IF EXISTS contact_has_skill;
-DROP TABLE IF EXISTS contacts;
-DROP TABLE IF EXISTS skills;
+DROP TABLE IF EXISTS "contact_has_skill";
+DROP TABLE IF EXISTS "contacts";
+DROP TABLE IF EXISTS "skills";
+DROP TABLE IF EXISTS "users";

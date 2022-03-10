@@ -1,9 +1,10 @@
 -- name: CreateSkill :one
 INSERT INTO skills (
+  owner,
   skill_name, 
   skill_level
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 )
 RETURNING *;
 
@@ -25,9 +26,10 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListSkills :many
 SELECT * FROM skills
+WHERE owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2;
+LIMIT $2
+OFFSET $3;
 
 -- name: UpdateSkill :one
 UPDATE skills 

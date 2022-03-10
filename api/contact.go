@@ -6,9 +6,11 @@ import (
 
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 )
 
 type createContactRequest struct {
+	Owner       string `json:"owner" binding:"required"`
 	Firstname   string `json:"firstname" binding:"required"`
 	Lastname    string `json:"lastname" binding:"required"`
 	Fullname    string `json:"fullname" binding:"required"`
@@ -27,6 +29,7 @@ func (server *Server) createContact(ctx *gin.Context) {
 
 	// In case of no error, we add the contact in the database.
 	args := db.CreateContactParams{
+		Owner:       req.Owner,
 		Firstname:   req.Firstname,
 		Lastname:    req.Lastname,
 		Fullname:    req.Fullname,
@@ -37,6 +40,13 @@ func (server *Server) createContact(ctx *gin.Context) {
 
 	contact, err := server.database.CreateContact(ctx, args)
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code.Name() {
+			case "foreign_key_violation", "unique_violation":
+				ctx.JSON(http.StatusForbidden, errorResponse(err))
+				return
+			}
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -72,8 +82,10 @@ func (server *Server) getContact(ctx *gin.Context) {
 }
 
 type listContactsRequest struct {
-	PageID   int32 `form:"page_id" binding:"required,min=1"`
-	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
+	// A SUPPRIMER
+	Owner    string `json:"owner" binding:"required"`
+	PageID   int32  `form:"page_id" binding:"required,min=1"`
+	PageSize int32  `form:"page_size" binding:"required,min=1,max=10"`
 }
 
 func (server *Server) listContacts(ctx *gin.Context) {
@@ -83,8 +95,9 @@ func (server *Server) listContacts(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-
+	// TODO : recuperer le username via authentification
 	args := db.ListContactsParams{
+		Owner:  req.Owner, // a modifier par un autre username
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}

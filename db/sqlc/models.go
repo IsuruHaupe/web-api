@@ -2,10 +2,13 @@
 
 package db
 
-import ()
+import (
+	"time"
+)
 
 type Contact struct {
 	ID          int64  `json:"id"`
+	Owner       string `json:"owner"`
 	Firstname   string `json:"firstname"`
 	Lastname    string `json:"lastname"`
 	Fullname    string `json:"fullname"`
@@ -15,12 +18,23 @@ type Contact struct {
 }
 
 type ContactHasSkill struct {
-	ContactID int32 `json:"contact_id"`
-	SkillID   int32 `json:"skill_id"`
+	Owner     string `json:"owner"`
+	ContactID int32  `json:"contact_id"`
+	SkillID   int32  `json:"skill_id"`
 }
 
 type Skill struct {
 	ID         int64  `json:"id"`
+	Owner      string `json:"owner"`
 	SkillName  string `json:"skill_name"`
 	SkillLevel string `json:"skill_level"`
+}
+
+type User struct {
+	Username            string    `json:"username"`
+	HashedPassword      string    `json:"hashed_password"`
+	Fullname            string    `json:"fullname"`
+	Email               string    `json:"email"`
+	PasswordLastChanged time.Time `json:"password_last_changed"`
+	CreateAt            time.Time `json:"create_at"`
 }

@@ -9,22 +9,24 @@ import (
 
 const createContactHasSkill = `-- name: CreateContactHasSkill :one
 INSERT INTO contact_has_skill (
+  owner,
   contact_id, 
   skill_id
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 )
-RETURNING contact_id, skill_id
+RETURNING owner, contact_id, skill_id
 `
 
 type CreateContactHasSkillParams struct {
-	ContactID int32 `json:"contact_id"`
-	SkillID   int32 `json:"skill_id"`
+	Owner     string `json:"owner"`
+	ContactID int32  `json:"contact_id"`
+	SkillID   int32  `json:"skill_id"`
 }
 
 func (q *Queries) CreateContactHasSkill(ctx context.Context, arg CreateContactHasSkillParams) (ContactHasSkill, error) {
-	row := q.db.QueryRowContext(ctx, createContactHasSkill, arg.ContactID, arg.SkillID)
+	row := q.db.QueryRowContext(ctx, createContactHasSkill, arg.Owner, arg.ContactID, arg.SkillID)
 	var i ContactHasSkill
-	err := row.Scan(&i.ContactID, &i.SkillID)
+	err := row.Scan(&i.Owner, &i.ContactID, &i.SkillID)
 	return i, err
 }

@@ -10,8 +10,10 @@ type Querier interface {
 	CreateContact(ctx context.Context, arg CreateContactParams) (Contact, error)
 	CreateContactHasSkill(ctx context.Context, arg CreateContactHasSkillParams) (ContactHasSkill, error)
 	CreateSkill(ctx context.Context, arg CreateSkillParams) (Skill, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteContact(ctx context.Context, id int64) error
 	DeleteSkill(ctx context.Context, id int64) error
+	DeleteUser(ctx context.Context, username string) error
 	GetContact(ctx context.Context, id int64) (Contact, error)
 	GetContactsWithSkill(ctx context.Context, skillName string) ([]Contact, error)
 	GetContactsWithSkillAndLevel(ctx context.Context, arg GetContactsWithSkillAndLevelParams) ([]Contact, error)
@@ -26,6 +28,7 @@ type Querier interface {
 	GetSkill(ctx context.Context, id int64) (Skill, error)
 	GetSkillLevel(ctx context.Context, id int64) (string, error)
 	GetSkillName(ctx context.Context, id int64) (string, error)
+	GetUser(ctx context.Context, username string) (User, error)
 	ListContacts(ctx context.Context, arg ListContactsParams) ([]Contact, error)
 	ListSkills(ctx context.Context, arg ListSkillsParams) ([]Skill, error)
 	UpdateContact(ctx context.Context, arg UpdateContactParams) (Contact, error)

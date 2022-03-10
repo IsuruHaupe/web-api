@@ -8,14 +8,16 @@ import (
 )
 
 func TestCreateContactHasSkill(t *testing.T) {
+	user := CreateRandomUser(t)
 	// Create a contact.
-	contact := CreateRandomContact(t)
+	contact := CreateRandomContact(t, user)
 
 	// Create a skill.
-	skill := CreateRandomSkill(t)
+	skill := CreateRandomSkill(t, user)
 
 	// Bind a contact with a skill
 	argsContactHasSkill := CreateContactHasSkillParams{
+		Owner:     user.Username,
 		ContactID: int32(contact.ID),
 		SkillID:   int32(skill.ID),
 	}

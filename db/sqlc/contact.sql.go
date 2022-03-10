@@ -9,6 +9,7 @@ import (
 
 const createContact = `-- name: CreateContact :one
 INSERT INTO contacts (
+  owner,
   firstname, 
   lastname, 
   fullname, 
@@ -16,12 +17,13 @@ INSERT INTO contacts (
   email, 
   phone_number
 ) VALUES (
-  $1, $2, $3, $4, $5, $6
+  $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, firstname, lastname, fullname, home_address, email, phone_number
+RETURNING id, owner, firstname, lastname, fullname, home_address, email, phone_number
 `
 
 type CreateContactParams struct {
+	Owner       string `json:"owner"`
 	Firstname   string `json:"firstname"`
 	Lastname    string `json:"lastname"`
 	Fullname    string `json:"fullname"`
@@ -32,6 +34,7 @@ type CreateContactParams struct {
 
 func (q *Queries) CreateContact(ctx context.Context, arg CreateContactParams) (Contact, error) {
 	row := q.db.QueryRowContext(ctx, createContact,
+		arg.Owner,
 		arg.Firstname,
 		arg.Lastname,
 		arg.Fullname,
@@ -42,6 +45,7 @@ func (q *Queries) CreateContact(ctx context.Context, arg CreateContactParams) (C
 	var i Contact
 	err := row.Scan(
 		&i.ID,
+		&i.Owner,
 		&i.Firstname,
 		&i.Lastname,
 		&i.Fullname,
@@ -62,7 +66,7 @@ func (q *Queries) DeleteContact(ctx context.Context, id int64) error {
 }
 
 const getContact = `-- name: GetContact :one
-SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
+SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
 WHERE id = $1 LIMIT 1
 `
 
@@ -71,6 +75,7 @@ func (q *Queries) GetContact(ctx context.Context, id int64) (Contact, error) {
 	var i Contact
 	err := row.Scan(
 		&i.ID,
+		&i.Owner,
 		&i.Firstname,
 		&i.Lastname,
 		&i.Fullname,
@@ -82,7 +87,7 @@ func (q *Queries) GetContact(ctx context.Context, id int64) (Contact, error) {
 }
 
 const getContactsWithSkill = `-- name: GetContactsWithSkill :many
-SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
+SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
 WHERE id IN (
     SELECT contact_id
     FROM contact_has_skill
@@ -105,6 +110,7 @@ func (q *Queries) GetContactsWithSkill(ctx context.Context, skillName string) ([
 		var i Contact
 		if err := rows.Scan(
 			&i.ID,
+			&i.Owner,
 			&i.Firstname,
 			&i.Lastname,
 			&i.Fullname,
@@ -126,7 +132,7 @@ func (q *Queries) GetContactsWithSkill(ctx context.Context, skillName string) ([
 }
 
 const getContactsWithSkillAndLevel = `-- name: GetContactsWithSkillAndLevel :many
-SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
+SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
 WHERE id IN (
     SELECT contact_id
     FROM contact_has_skill
@@ -154,6 +160,7 @@ func (q *Queries) GetContactsWithSkillAndLevel(ctx context.Context, arg GetConta
 		var i Contact
 		if err := rows.Scan(
 			&i.ID,
+			&i.Owner,
 			&i.Firstname,
 			&i.Lastname,
 			&i.Fullname,
@@ -223,7 +230,7 @@ func (q *Queries) GetHomeAddress(ctx context.Context, id int64) (string, error) 
 }
 
 const getIfExistsContactID = `-- name: GetIfExistsContactID :one
-SELECT EXISTS (SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts WHERE id = $1)
+SELECT EXISTS (SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts WHERE id = $1)
 `
 
 func (q *Queries) GetIfExistsContactID(ctx context.Context, id int64) (bool, error) {
@@ -258,19 +265,21 @@ func (q *Queries) GetPhoneNumber(ctx context.Context, id int64) (string, error) 
 }
 
 const listContacts = `-- name: ListContacts :many
-SELECT id, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
+SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
+WHERE owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2
+LIMIT $2
+OFFSET $3
 `
 
 type ListContactsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Owner  string `json:"owner"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
 }
 
 func (q *Queries) ListContacts(ctx context.Context, arg ListContactsParams) ([]Contact, error) {
-	rows, err := q.db.QueryContext(ctx, listContacts, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listContacts, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +289,7 @@ func (q *Queries) ListContacts(ctx context.Context, arg ListContactsParams) ([]C
 		var i Contact
 		if err := rows.Scan(
 			&i.ID,
+			&i.Owner,
 			&i.Firstname,
 			&i.Lastname,
 			&i.Fullname,
@@ -309,7 +319,7 @@ home_address = $5,
 email = $6, 
 phone_number = $7
 WHERE id = $1
-RETURNING id, firstname, lastname, fullname, home_address, email, phone_number
+RETURNING id, owner, firstname, lastname, fullname, home_address, email, phone_number
 `
 
 type UpdateContactParams struct {
@@ -335,6 +345,7 @@ func (q *Queries) UpdateContact(ctx context.Context, arg UpdateContactParams) (C
 	var i Contact
 	err := row.Scan(
 		&i.ID,
+		&i.Owner,
 		&i.Firstname,
 		&i.Lastname,
 		&i.Fullname,

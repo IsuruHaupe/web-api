@@ -35,6 +35,8 @@ func NewServer(database postgres.Database) *Server {
 	router.PATCH("/skills", server.updateSkill)
 	// Binding skills and contacts route
 	router.POST("/add-skill", server.createSkillToContact)
+	// Authentification routes
+	router.POST("/users", server.createUser)
 
 	server.router = router
 	return server

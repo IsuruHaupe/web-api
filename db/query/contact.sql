@@ -1,5 +1,6 @@
 -- name: CreateContact :one
 INSERT INTO contacts (
+  owner,
   firstname, 
   lastname, 
   fullname, 
@@ -7,7 +8,7 @@ INSERT INTO contacts (
   email, 
   phone_number
 ) VALUES (
-  $1, $2, $3, $4, $5, $6
+  $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING *;
 
@@ -44,9 +45,10 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListContacts :many
 SELECT * FROM contacts
+WHERE owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2;
+LIMIT $2
+OFFSET $3;
 
 -- name: UpdateContact :one
 UPDATE contacts 

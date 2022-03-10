@@ -9,23 +9,30 @@ import (
 
 const createSkill = `-- name: CreateSkill :one
 INSERT INTO skills (
+  owner,
   skill_name, 
   skill_level
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 )
-RETURNING id, skill_name, skill_level
+RETURNING id, owner, skill_name, skill_level
 `
 
 type CreateSkillParams struct {
+	Owner      string `json:"owner"`
 	SkillName  string `json:"skill_name"`
 	SkillLevel string `json:"skill_level"`
 }
 
 func (q *Queries) CreateSkill(ctx context.Context, arg CreateSkillParams) (Skill, error) {
-	row := q.db.QueryRowContext(ctx, createSkill, arg.SkillName, arg.SkillLevel)
+	row := q.db.QueryRowContext(ctx, createSkill, arg.Owner, arg.SkillName, arg.SkillLevel)
 	var i Skill
-	err := row.Scan(&i.ID, &i.SkillName, &i.SkillLevel)
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.SkillName,
+		&i.SkillLevel,
+	)
 	return i, err
 }
 
@@ -39,7 +46,7 @@ func (q *Queries) DeleteSkill(ctx context.Context, id int64) error {
 }
 
 const getIfExistsSkillID = `-- name: GetIfExistsSkillID :one
-SELECT EXISTS (SELECT id, skill_name, skill_level FROM skills WHERE id = $1)
+SELECT EXISTS (SELECT id, owner, skill_name, skill_level FROM skills WHERE id = $1)
 `
 
 func (q *Queries) GetIfExistsSkillID(ctx context.Context, id int64) (bool, error) {
@@ -50,14 +57,19 @@ func (q *Queries) GetIfExistsSkillID(ctx context.Context, id int64) (bool, error
 }
 
 const getSkill = `-- name: GetSkill :one
-SELECT id, skill_name, skill_level FROM skills
+SELECT id, owner, skill_name, skill_level FROM skills
 WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetSkill(ctx context.Context, id int64) (Skill, error) {
 	row := q.db.QueryRowContext(ctx, getSkill, id)
 	var i Skill
-	err := row.Scan(&i.ID, &i.SkillName, &i.SkillLevel)
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.SkillName,
+		&i.SkillLevel,
+	)
 	return i, err
 }
 
@@ -86,19 +98,21 @@ func (q *Queries) GetSkillName(ctx context.Context, id int64) (string, error) {
 }
 
 const listSkills = `-- name: ListSkills :many
-SELECT id, skill_name, skill_level FROM skills
+SELECT id, owner, skill_name, skill_level FROM skills
+WHERE owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2
+LIMIT $2
+OFFSET $3
 `
 
 type ListSkillsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Owner  string `json:"owner"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
 }
 
 func (q *Queries) ListSkills(ctx context.Context, arg ListSkillsParams) ([]Skill, error) {
-	rows, err := q.db.QueryContext(ctx, listSkills, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listSkills, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +120,12 @@ func (q *Queries) ListSkills(ctx context.Context, arg ListSkillsParams) ([]Skill
 	items := []Skill{}
 	for rows.Next() {
 		var i Skill
-		if err := rows.Scan(&i.ID, &i.SkillName, &i.SkillLevel); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.SkillName,
+			&i.SkillLevel,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -125,7 +144,7 @@ UPDATE skills
 SET skill_name = $2, 
 skill_level = $3
 WHERE id = $1
-RETURNING id, skill_name, skill_level
+RETURNING id, owner, skill_name, skill_level
 `
 
 type UpdateSkillParams struct {
@@ -137,6 +156,11 @@ type UpdateSkillParams struct {
 func (q *Queries) UpdateSkill(ctx context.Context, arg UpdateSkillParams) (Skill, error) {
 	row := q.db.QueryRowContext(ctx, updateSkill, arg.ID, arg.SkillName, arg.SkillLevel)
 	var i Skill
-	err := row.Scan(&i.ID, &i.SkillName, &i.SkillLevel)
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.SkillName,
+		&i.SkillLevel,
+	)
 	return i, err
 }
