@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	auth "github.com/IsuruHaupe/web-api/auth/token"
 	mockdb "github.com/IsuruHaupe/web-api/db/mock"
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/Pallinder/go-randomdata"
@@ -25,12 +27,16 @@ func TestGetContactAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		contactID     int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:      "Test PASS",
 			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
@@ -43,8 +49,41 @@ func TestGetContactAPI(t *testing.T) {
 			},
 		},
 		{
+			name:      "UnauthorizedUser",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:      "No Authorization",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name:      "Test CONTACT NOT FOUND",
 			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
@@ -58,6 +97,9 @@ func TestGetContactAPI(t *testing.T) {
 		{
 			name:      "Test INTERNAL ERROR",
 			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
@@ -71,6 +113,9 @@ func TestGetContactAPI(t *testing.T) {
 		{
 			name:      "Test INVALID PARAM",
 			contactID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetContact(gomock.Any(), gomock.Any()).
@@ -95,12 +140,13 @@ func TestGetContactAPI(t *testing.T) {
 			currentTest.buildStubs(database)
 
 			// Start server and tests.
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 			url := fmt.Sprintf("/contacts/%d", currentTest.contactID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 
 			// Check results.
@@ -124,6 +170,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		query         Query
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -131,6 +178,9 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			name: "OK",
 			query: Query{
 				skillName: "Go",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 
@@ -145,9 +195,46 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "UnauthorizedUser",
+			query: Query{
+				skillName: "Go",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactsWithSkill(gomock.Any(), gomock.Eq("Go")).
+					Times(1).
+					Return(contacts, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "No Authorization",
+			query: Query{
+				skillName: "Go",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactsWithSkill(gomock.Any(), gomock.Eq("Go")).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "InternalError",
 			query: Query{
 				skillName: "10",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -164,6 +251,9 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			query: Query{
 				skillName: "",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetContactsWithSkill(gomock.Any(), gomock.Eq("")).
@@ -177,6 +267,9 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			name: "NoFound",
 			query: Query{
 				skillName: "Scala",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -200,7 +293,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			url := "/contacts-with-skill"
@@ -212,6 +305,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			q.Add("skill_name", currentTest.query.skillName)
 			request.URL.RawQuery = q.Encode()
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
@@ -234,6 +328,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		query         Query
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -242,6 +337,9 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			query: Query{
 				skillName:  "Go",
 				skillLevel: "Proficient",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.GetContactsWithSkillAndLevelParams{
@@ -259,10 +357,57 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "UnauthorizedUser",
+			query: Query{
+				skillName:  "Go",
+				skillLevel: "Proficient",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.GetContactsWithSkillAndLevelParams{
+					SkillName:  "Go",
+					SkillLevel: "Proficient",
+				}
+				database.EXPECT().
+					GetContactsWithSkillAndLevel(gomock.Any(), gomock.Eq(arg)).
+					Times(1).
+					Return(contacts, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "No Authorization",
+			query: Query{
+				skillName:  "Go",
+				skillLevel: "Proficient",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.GetContactsWithSkillAndLevelParams{
+					SkillName:  "Go",
+					SkillLevel: "Proficient",
+				}
+				database.EXPECT().
+					GetContactsWithSkillAndLevel(gomock.Any(), gomock.Eq(arg)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "InternalError",
 			query: Query{
 				skillName:  "10",
 				skillLevel: "Proficient",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.GetContactsWithSkillAndLevelParams{
@@ -284,6 +429,9 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 				skillName:  "",
 				skillLevel: "Proficient",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.GetContactsWithSkillAndLevelParams{
 					SkillName:  "",
@@ -302,6 +450,9 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			query: Query{
 				skillName:  "Go",
 				skillLevel: "Proficient",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.GetContactsWithSkillAndLevelParams{
@@ -329,7 +480,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			url := "/contacts-with-skill-and-level"
@@ -342,6 +493,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			q.Add("skill_level", currentTest.query.skillLevel)
 			request.URL.RawQuery = q.Encode()
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
@@ -354,13 +506,13 @@ func TestCreateContactAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		body          gin.H
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "Test PASS",
 			body: gin.H{
-				"owner":        "totovergame",
 				"firstname":    contact.Firstname,
 				"lastname":     contact.Lastname,
 				"fullname":     contact.Fullname,
@@ -368,9 +520,12 @@ func TestCreateContactAPI(t *testing.T) {
 				"email":        contact.Email,
 				"phone_number": contact.PhoneNumber,
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.CreateContactParams{
-					Owner:       "totovergame",
+					Owner:       contact.Owner,
 					Firstname:   contact.Firstname,
 					Lastname:    contact.Lastname,
 					Fullname:    contact.Fullname,
@@ -390,15 +545,48 @@ func TestCreateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INTERNAL ERROR",
+			name: "No Authorization",
 			body: gin.H{
-				"owner":        "totovergame",
 				"firstname":    contact.Firstname,
 				"lastname":     contact.Lastname,
 				"fullname":     contact.Fullname,
 				"home_address": contact.HomeAddress,
 				"email":        contact.Email,
 				"phone_number": contact.PhoneNumber,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.CreateContactParams{
+					Owner:       contact.Owner,
+					Firstname:   contact.Firstname,
+					Lastname:    contact.Lastname,
+					Fullname:    contact.Fullname,
+					HomeAddress: contact.HomeAddress,
+					Email:       contact.Email,
+					PhoneNumber: contact.PhoneNumber,
+				}
+
+				database.EXPECT().
+					CreateContact(gomock.Any(), gomock.Eq(arg)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "Test INTERNAL ERROR",
+			body: gin.H{
+				"firstname":    contact.Firstname,
+				"lastname":     contact.Lastname,
+				"fullname":     contact.Fullname,
+				"home_address": contact.HomeAddress,
+				"email":        contact.Email,
+				"phone_number": contact.PhoneNumber,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockDatabase) {
 				store.EXPECT().
@@ -413,13 +601,15 @@ func TestCreateContactAPI(t *testing.T) {
 		{
 			name: "Test INVALID PARAM",
 			body: gin.H{
-				"owner":        "totovergame",
 				"firstname":    "",
 				"lastname":     contact.Lastname,
 				"fullname":     contact.Fullname,
 				"home_address": contact.HomeAddress,
 				"email":        contact.Email,
 				"phone_number": contact.PhoneNumber,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockDatabase) {
 				store.EXPECT().
@@ -443,7 +633,7 @@ func TestCreateContactAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
@@ -454,13 +644,13 @@ func TestCreateContactAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
 	}
 }
 
-/*
 func TestListContactsAPI(t *testing.T) {
 	user, _ := randomUser(t)
 
@@ -478,6 +668,7 @@ func TestListContactsAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		query         Query
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -486,6 +677,9 @@ func TestListContactsAPI(t *testing.T) {
 			query: Query{
 				pageID:   1,
 				pageSize: n,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.ListContactsParams{
@@ -505,11 +699,30 @@ func TestListContactsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InternalError",
+			name: "No Authorization",
 			query: Query{
-				owner:    "totovergame",
 				pageID:   1,
 				pageSize: n,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					ListContacts(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "InternalError",
+			query: Query{
+				pageID:   1,
+				pageSize: n,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -524,9 +737,11 @@ func TestListContactsAPI(t *testing.T) {
 		{
 			name: "InvalidPageID",
 			query: Query{
-				owner:    "totovergame",
 				pageID:   -1,
 				pageSize: n,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -540,9 +755,11 @@ func TestListContactsAPI(t *testing.T) {
 		{
 			name: "InvalidPageSize",
 			query: Query{
-				owner:    "totovergame",
 				pageID:   1,
 				pageSize: 100000,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -565,7 +782,7 @@ func TestListContactsAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			url := "/contacts"
@@ -578,11 +795,12 @@ func TestListContactsAPI(t *testing.T) {
 			q.Add("page_size", fmt.Sprintf("%d", currentTest.query.pageSize))
 			request.URL.RawQuery = q.Encode()
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
 	}
-}*/
+}
 
 func TestDeleteContactAPI(t *testing.T) {
 	user, _ := randomUser(t)
@@ -591,13 +809,22 @@ func TestDeleteContactAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		contactID     int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:      "OK",
 			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
+
 				database.EXPECT().
 					DeleteContact(gomock.Any(), gomock.Eq(contact.ID)).
 					Times(1).
@@ -608,9 +835,55 @@ func TestDeleteContactAPI(t *testing.T) {
 			},
 		},
 		{
+			name:      "UnauthorizedUser",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
+
+				database.EXPECT().
+					DeleteContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:      "No Authorization",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(0)
+
+				database.EXPECT().
+					DeleteContact(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name:      "InternalError",
 			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
+
 				database.EXPECT().
 					DeleteContact(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -623,7 +896,14 @@ func TestDeleteContactAPI(t *testing.T) {
 		{
 			name:      "BadRequest",
 			contactID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(0)
+
 				database.EXPECT().
 					DeleteContact(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -644,20 +924,20 @@ func TestDeleteContactAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/contacts/%d", currentTest.contactID)
 			request, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
 	}
 }
 
-// TODO : test Get fields functions.
 func TestUpdateContactAPI(t *testing.T) {
 	user, _ := randomUser(t)
 	contact := randomContact(user.Username)
@@ -665,6 +945,7 @@ func TestUpdateContactAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		body          gin.H
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -674,7 +955,15 @@ func TestUpdateContactAPI(t *testing.T) {
 				"id":        contact.ID,
 				"firstname": "Isuru",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
+
 				database.EXPECT().
 					UpdateContact(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -690,10 +979,65 @@ func TestUpdateContactAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "UnauthorizedUser",
+			body: gin.H{
+				"id":        contact.ID,
+				"firstname": "Isuru",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
+
+				database.EXPECT().
+					UpdateContact(gomock.Any(), gomock.Any()).
+					Times(0)
+
+				database.EXPECT().
+					GetIfExistsContactID(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "No Authorization",
+			body: gin.H{
+				"id":        contact.ID,
+				"firstname": "Isuru",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(0)
+
+				database.EXPECT().
+					UpdateContact(gomock.Any(), gomock.Any()).
+					Times(0)
+
+				database.EXPECT().
+					GetIfExistsContactID(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "Test BAD REQUEST",
 			body: gin.H{
 				"id":        0,
 				"firstname": "Isuru",
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -710,7 +1054,14 @@ func TestUpdateContactAPI(t *testing.T) {
 				"id":        contact.ID,
 				"firstname": "Isuru",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
 				database.EXPECT().
 					UpdateContact(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -729,7 +1080,14 @@ func TestUpdateContactAPI(t *testing.T) {
 				"id":        contact.ID,
 				"firstname": "Isuru",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContact(gomock.Any(), gomock.Eq(contact.ID)).
+					Times(1).
+					Return(contact, nil)
 				database.EXPECT().
 					UpdateContact(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -754,7 +1112,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
@@ -765,6 +1123,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})

@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	auth "github.com/IsuruHaupe/web-api/auth/token"
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/gin-gonic/gin"
 )
@@ -20,8 +21,11 @@ func (server *Server) createSkillToContact(ctx *gin.Context) {
 		return
 	}
 
+	// Retrieve the username in the authorization payload.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
 	// In case of no error, we add the contact in the database.
 	args := db.CreateContactHasSkillParams{
+		Owner:     authPayload.Username,
 		ContactID: req.ContactID,
 		SkillID:   req.SkillID,
 	}

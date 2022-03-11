@@ -2,15 +2,16 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
+	auth "github.com/IsuruHaupe/web-api/auth/token"
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 )
 
 type createContactRequest struct {
-	Owner       string `json:"owner" binding:"required"`
 	Firstname   string `json:"firstname" binding:"required"`
 	Lastname    string `json:"lastname" binding:"required"`
 	Fullname    string `json:"fullname" binding:"required"`
@@ -27,9 +28,11 @@ func (server *Server) createContact(ctx *gin.Context) {
 		return
 	}
 
+	// Retrieve the username in the authorization payload.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
 	// In case of no error, we add the contact in the database.
 	args := db.CreateContactParams{
-		Owner:       req.Owner,
+		Owner:       authPayload.Username,
 		Firstname:   req.Firstname,
 		Lastname:    req.Lastname,
 		Fullname:    req.Fullname,
@@ -78,14 +81,20 @@ func (server *Server) getContact(ctx *gin.Context) {
 		return
 	}
 
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	if contact.Owner != authPayload.Username {
+		err := errors.New("contact doesn't belong to the user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, contact)
 }
 
 type listContactsRequest struct {
-	// A SUPPRIMER
-	Owner    string `json:"owner" binding:"required"`
-	PageID   int32  `form:"page_id" binding:"required,min=1"`
-	PageSize int32  `form:"page_size" binding:"required,min=1,max=10"`
+	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
 }
 
 func (server *Server) listContacts(ctx *gin.Context) {
@@ -95,9 +104,11 @@ func (server *Server) listContacts(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	// TODO : recuperer le username via authentification
+
+	// Check for authentification payload
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
 	args := db.ListContactsParams{
-		Owner:  req.Owner, // a modifier par un autre username
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
@@ -105,6 +116,15 @@ func (server *Server) listContacts(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
+	}
+
+	// Check for owernership.
+	for _, contact := range contacts {
+		if contact.Owner != authPayload.Username {
+			err := errors.New("contact doesn't belong to the user")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, contacts)
@@ -122,7 +142,28 @@ func (server *Server) deleteContact(ctx *gin.Context) {
 		return
 	}
 
-	err := server.database.DeleteContact(ctx, req.ID)
+	// Get the contact to check ownership before deletion.
+	contact, err := server.database.GetContact(ctx, req.ID)
+	if err != nil {
+		// Check if we have no contact with that ID.
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	if contact.Owner != authPayload.Username {
+		err := errors.New("contact doesn't belong to the user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	err = server.database.DeleteContact(ctx, req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -213,8 +254,28 @@ func (server *Server) updateContact(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	// Get the contact to check ownership before update.
+	contact, err := server.database.GetContact(ctx, req.ID)
+	if err != nil {
+		// Check if we have no contact with that ID.
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
 
-	// For each filed we check if it nil.
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	if contact.Owner != authPayload.Username {
+		err := errors.New("contact doesn't belong to the user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	// For each field we check if it nil.
 	// If it is, then we retrieve the previous value for it.
 	contactPreviousValues(ctx, &req, server)
 
@@ -229,7 +290,7 @@ func (server *Server) updateContact(ctx *gin.Context) {
 		PhoneNumber: req.PhoneNumber,
 	}
 
-	contact, err := server.database.UpdateContact(ctx, args)
+	contact, err = server.database.UpdateContact(ctx, args)
 	if err != nil {
 		// Check if we have no contact with that ID.
 		if err == sql.ErrNoRows {
@@ -267,6 +328,15 @@ func (server *Server) getContactWithSkill(ctx *gin.Context) {
 		return
 	}
 
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	for _, contact := range contacts {
+		if contact.Owner != authPayload.Username {
+			err := errors.New("contact doesn't belong to the user")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+			return
+		}
+	}
 	ctx.JSON(http.StatusOK, contacts)
 }
 
@@ -300,5 +370,14 @@ func (server *Server) getContactWithSkillAndLevel(ctx *gin.Context) {
 		return
 	}
 
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	for _, contact := range contacts {
+		if contact.Owner != authPayload.Username {
+			err := errors.New("contact doesn't belong to the user")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+			return
+		}
+	}
 	ctx.JSON(http.StatusOK, contacts)
 }

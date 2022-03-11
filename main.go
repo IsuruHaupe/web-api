@@ -26,7 +26,10 @@ func main() {
 	// Create a new PostgresConnection.
 	postgresDatabase := postgres.NewPostgresConnection(connection)
 	// Create the server.
-	server := api.NewServer(postgresDatabase)
+	server, err := api.NewServer(config, postgresDatabase)
+	if err != nil {
+		log.Fatal("cannot create server : ", err)
+	}
 
 	// Start the server.
 	err = server.Start(config.ServerAddress)

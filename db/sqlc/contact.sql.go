@@ -93,7 +93,7 @@ WHERE id IN (
     FROM contact_has_skill
     WHERE skill_id IN (
     	SELECT id 
-    	FROM skills 
+    	FROM skills
     	WHERE skill_name = $1
     )
   )
@@ -138,7 +138,7 @@ WHERE id IN (
     FROM contact_has_skill
     WHERE skill_id IN (
     	SELECT id 
-    	FROM skills 
+    	FROM skills
     	WHERE skill_name = $1 AND skill_level = $2
     )
   )
@@ -267,7 +267,7 @@ func (q *Queries) GetPhoneNumber(ctx context.Context, id int64) (string, error) 
 const listContacts = `-- name: ListContacts :many
 SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
 WHERE owner = $1
-ORDER BY id
+ORDER BY firstname ASC
 LIMIT $2
 OFFSET $3
 `

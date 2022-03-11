@@ -2,10 +2,13 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
+	auth "github.com/IsuruHaupe/web-api/auth/token"
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 )
 
 type createSkillRequest struct {
@@ -21,19 +24,29 @@ func (server *Server) createSkill(ctx *gin.Context) {
 		return
 	}
 
-	// In case of no error, we add the contact in the database.
+	// Retrieve the username in the authorization payload.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	// In case of no error, we add the skill in the database.
 	args := db.CreateSkillParams{
+		Owner:      authPayload.Username,
 		SkillName:  req.SkillName,
 		SkillLevel: req.SkillLevel,
 	}
 
-	contact, err := server.database.CreateSkill(ctx, args)
+	skill, err := server.database.CreateSkill(ctx, args)
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code.Name() {
+			case "foreign_key_violation", "unique_violation":
+				ctx.JSON(http.StatusForbidden, errorResponse(err))
+				return
+			}
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, contact)
+	ctx.JSON(http.StatusOK, skill)
 }
 
 type getSkillRequest struct {
@@ -59,7 +72,13 @@ func (server *Server) getSkill(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	if skill.Owner != authPayload.Username {
+		err := errors.New("skill doesn't belong to the user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
 	ctx.JSON(http.StatusOK, skill)
 }
 
@@ -76,7 +95,10 @@ func (server *Server) listSkills(ctx *gin.Context) {
 		return
 	}
 
+	// Check for authentification paylaod.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
 	args := db.ListSkillsParams{
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
@@ -86,6 +108,14 @@ func (server *Server) listSkills(ctx *gin.Context) {
 		return
 	}
 
+	// Check for owernership.
+	for _, skill := range skills {
+		if skill.Owner != authPayload.Username {
+			err := errors.New("skill doesn't belong to the user")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+			return
+		}
+	}
 	ctx.JSON(http.StatusOK, skills)
 }
 
@@ -101,7 +131,28 @@ func (server *Server) deleteSkill(ctx *gin.Context) {
 		return
 	}
 
-	err := server.database.DeleteSkill(ctx, req.ID)
+	// Get the contact to check ownership before deletion.
+	skill, err := server.database.GetSkill(ctx, req.ID)
+	if err != nil {
+		// Check if we have no contact with that ID.
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	if skill.Owner != authPayload.Username {
+		err := errors.New("contact doesn't belong to the user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	err = server.database.DeleteSkill(ctx, req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -153,8 +204,28 @@ func (server *Server) updateSkill(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	// Get the contact to check ownership before update.
+	skill, err := server.database.GetSkill(ctx, req.ID)
+	if err != nil {
+		// Check if we have no contact with that ID.
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
 
-	// For each filed we check if it nil.
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	if skill.Owner != authPayload.Username {
+		err := errors.New("contact doesn't belong to the user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	// For each field we check if it nil.
 	// If it is, then we retrieve the previous value for it.
 	skillPreviousValues(ctx, &req, server)
 
@@ -165,9 +236,9 @@ func (server *Server) updateSkill(ctx *gin.Context) {
 		SkillLevel: req.SkillLevel,
 	}
 
-	contact, err := server.database.UpdateSkill(ctx, args)
+	skill, err = server.database.UpdateSkill(ctx, args)
 	if err != nil {
-		// Check if we have no contact with that ID.
+		// Check if we have no skill with that ID.
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -176,5 +247,5 @@ func (server *Server) updateSkill(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, contact)
+	ctx.JSON(http.StatusOK, skill)
 }

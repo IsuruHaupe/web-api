@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	auth "github.com/IsuruHaupe/web-api/auth/token"
 	mockdb "github.com/IsuruHaupe/web-api/db/mock"
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/Pallinder/go-randomdata"
@@ -21,17 +22,22 @@ import (
 )
 
 func TestGetSkillAPI(t *testing.T) {
-	skill := randomSkill()
+	user, _ := randomUser(t)
+	skill := randomSkill(user.Username)
 
 	testCases := []struct {
 		name          string
 		skillID       int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:    "Test PASS",
 			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
@@ -44,8 +50,41 @@ func TestGetSkillAPI(t *testing.T) {
 			},
 		},
 		{
+			name:    "UnauthorizedUser",
+			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:    "No Authorization",
+			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name:    "Test SKILL NOT FOUND",
 			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
@@ -59,6 +98,9 @@ func TestGetSkillAPI(t *testing.T) {
 		{
 			name:    "Test INTERNAL ERROR",
 			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
@@ -72,6 +114,9 @@ func TestGetSkillAPI(t *testing.T) {
 		{
 			name:    "Test INVALID PARAM",
 			skillID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					GetSkill(gomock.Any(), gomock.Any()).
@@ -96,12 +141,13 @@ func TestGetSkillAPI(t *testing.T) {
 			currentTest.buildStubs(database)
 
 			// Start server and tests.
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 			url := fmt.Sprintf("/skills/%d", currentTest.skillID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 
 			// Check results.
@@ -111,10 +157,12 @@ func TestGetSkillAPI(t *testing.T) {
 }
 
 func TestCreateSkillAPI(t *testing.T) {
-	skill := randomSkill()
+	user, _ := randomUser(t)
+	skill := randomSkill(user.Username)
 	testCases := []struct {
 		name          string
 		body          gin.H
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -124,8 +172,12 @@ func TestCreateSkillAPI(t *testing.T) {
 				"skill_name":  skill.SkillName,
 				"skill_level": skill.SkillLevel,
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.CreateSkillParams{
+					Owner:      skill.Owner,
 					SkillName:  skill.SkillName,
 					SkillLevel: skill.SkillLevel,
 				}
@@ -141,10 +193,35 @@ func TestCreateSkillAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "No Authorization",
+			body: gin.H{
+				"skill_name":  skill.SkillName,
+				"skill_level": skill.SkillLevel,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				arg := db.CreateSkillParams{
+					Owner:      skill.Owner,
+					SkillName:  skill.SkillName,
+					SkillLevel: skill.SkillLevel,
+				}
+				database.EXPECT().
+					CreateSkill(gomock.Any(), gomock.Eq(arg)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "Test INTERNAL ERROR",
 			body: gin.H{
 				"skill_name":  skill.SkillName,
 				"skill_level": skill.SkillLevel,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockDatabase) {
 				store.EXPECT().
@@ -161,6 +238,9 @@ func TestCreateSkillAPI(t *testing.T) {
 			body: gin.H{
 				"skill_name":  "",
 				"skill_level": skill.SkillLevel,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockDatabase) {
 				store.EXPECT().
@@ -184,7 +264,7 @@ func TestCreateSkillAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
@@ -195,6 +275,7 @@ func TestCreateSkillAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
@@ -202,10 +283,11 @@ func TestCreateSkillAPI(t *testing.T) {
 }
 
 func TestListSkillsAPI(t *testing.T) {
+	user, _ := randomUser(t)
 	n := 5
 	skills := make([]db.Skill, n)
 	for i := 0; i < n; i++ {
-		skills[i] = randomSkill()
+		skills[i] = randomSkill(user.Username)
 	}
 
 	type Query struct {
@@ -216,6 +298,7 @@ func TestListSkillsAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		query         Query
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -225,8 +308,12 @@ func TestListSkillsAPI(t *testing.T) {
 				pageID:   1,
 				pageSize: n,
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				arg := db.ListSkillsParams{
+					Owner:  user.Username,
 					Limit:  int32(n),
 					Offset: 0,
 				}
@@ -242,10 +329,30 @@ func TestListSkillsAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "No Authorization",
+			query: Query{
+				pageID:   1,
+				pageSize: n,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					ListSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "InternalError",
 			query: Query{
 				pageID:   1,
 				pageSize: n,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
@@ -263,6 +370,9 @@ func TestListSkillsAPI(t *testing.T) {
 				pageID:   -1,
 				pageSize: n,
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					ListSkills(gomock.Any(), gomock.Any()).
@@ -278,6 +388,9 @@ func TestListSkillsAPI(t *testing.T) {
 				pageID:   1,
 				pageSize: 100000,
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
 					ListSkills(gomock.Any(), gomock.Any()).
@@ -299,7 +412,7 @@ func TestListSkillsAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			url := "/skills"
@@ -312,6 +425,7 @@ func TestListSkillsAPI(t *testing.T) {
 			q.Add("page_size", fmt.Sprintf("%d", currentTest.query.pageSize))
 			request.URL.RawQuery = q.Encode()
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
@@ -319,18 +433,27 @@ func TestListSkillsAPI(t *testing.T) {
 }
 
 func TestDeleteSkillAPI(t *testing.T) {
-	skill := randomSkill()
+	user, _ := randomUser(t)
+	skill := randomSkill(user.Username)
 
 	testCases := []struct {
 		name          string
 		skillID       int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:    "OK",
 			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
 				database.EXPECT().
 					DeleteSkill(gomock.Any(), gomock.Eq(skill.ID)).
 					Times(1).
@@ -341,9 +464,54 @@ func TestDeleteSkillAPI(t *testing.T) {
 			},
 		},
 		{
+			name:    "UnauthorizedUser",
+			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
+
+				database.EXPECT().
+					DeleteSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:    "No Authorization",
+			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(0)
+
+				database.EXPECT().
+					DeleteSkill(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name:    "InternalError",
 			skillID: skill.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
 				database.EXPECT().
 					DeleteSkill(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -356,7 +524,14 @@ func TestDeleteSkillAPI(t *testing.T) {
 		{
 			name:    "BadRequest",
 			skillID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(0)
+
 				database.EXPECT().
 					DeleteSkill(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -377,13 +552,14 @@ func TestDeleteSkillAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/skills/%d", currentTest.skillID)
 			request, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
@@ -391,11 +567,13 @@ func TestDeleteSkillAPI(t *testing.T) {
 }
 
 func TestUpdateSkillAPI(t *testing.T) {
-	skill := randomSkill()
+	user, _ := randomUser(t)
+	skill := randomSkill(user.Username)
 
 	testCases := []struct {
 		name          string
 		body          gin.H
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
 		buildStubs    func(database *mockdb.MockDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -405,7 +583,15 @@ func TestUpdateSkillAPI(t *testing.T) {
 				"id":          skill.ID,
 				"skill_level": "Expert",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
 				database.EXPECT().
 					UpdateSkill(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -426,9 +612,19 @@ func TestUpdateSkillAPI(t *testing.T) {
 				"id":        0,
 				"firstname": "Isuru",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
 				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(0).
+					Return(skill, nil)
+				database.EXPECT().
 					UpdateSkill(gomock.Any(), gomock.Any()).
+					Times(0)
+				database.EXPECT().
+					GetIfExistsSkillID(gomock.Any(), gomock.Eq(skill.ID)).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -441,7 +637,14 @@ func TestUpdateSkillAPI(t *testing.T) {
 				"id":        skill.ID,
 				"firstname": "Isuru",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
 				database.EXPECT().
 					UpdateSkill(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -460,7 +663,14 @@ func TestUpdateSkillAPI(t *testing.T) {
 				"id":        skill.ID,
 				"firstname": "Isuru",
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetSkill(gomock.Any(), gomock.Eq(skill.ID)).
+					Times(1).
+					Return(skill, nil)
 				database.EXPECT().
 					UpdateSkill(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -485,7 +695,7 @@ func TestUpdateSkillAPI(t *testing.T) {
 			database := mockdb.NewMockDatabase(ctrl)
 			currentTest.buildStubs(database)
 
-			server := NewServer(database)
+			server := newTestServer(t, database)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
@@ -496,6 +706,7 @@ func TestUpdateSkillAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
+			currentTest.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			currentTest.checkResponse(t, recorder)
 		})
@@ -505,10 +716,11 @@ func TestUpdateSkillAPI(t *testing.T) {
 var randomProgLang = [...]string{"Go", "Java", "Javascript", "C++", "Python", "R", "HTML"}
 var randomProfLvl = [...]string{"Familiar", "Proficient", "Excellent", "Expert"}
 
-func randomSkill() db.Skill {
+func randomSkill(owner string) db.Skill {
 	rand.Seed(time.Now().UnixNano())
 	return db.Skill{
 		ID:         int64(randomdata.Number(20)),
+		Owner:      owner,
 		SkillName:  randomProgLang[rand.Intn(len(randomProgLang))],
 		SkillLevel: randomProfLvl[rand.Intn(len(randomProfLvl))],
 	}
