@@ -31,4 +31,10 @@ mock:
 swagger:
 	swag init
 
-.PHONY: postgres createdb dropdb migrateforce migrateup migratedown sqlc tests server mock swagger
+docker-up: 
+	docker compose up
+
+docker-down: 
+	docker compose down
+
+.PHONY: postgres createdb dropdb migrateforce migrateup migratedown sqlc tests server mock swagger docker-up docker-down
