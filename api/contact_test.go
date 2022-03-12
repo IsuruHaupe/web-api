@@ -1132,7 +1132,7 @@ func TestUpdateContactAPI(t *testing.T) {
 
 func randomContact(owner string) db.Contact {
 	return db.Contact{
-		ID:          int64(randomdata.Number(20)),
+		ID:          int64(randomdata.Number(1, 20)),
 		Owner:       owner,
 		Firstname:   randomdata.FirstName(randomdata.Female),
 		Lastname:    randomdata.LastName(),

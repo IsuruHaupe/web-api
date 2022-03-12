@@ -719,7 +719,7 @@ var randomProfLvl = [...]string{"Familiar", "Proficient", "Excellent", "Expert"}
 func randomSkill(owner string) db.Skill {
 	rand.Seed(time.Now().UnixNano())
 	return db.Skill{
-		ID:         int64(randomdata.Number(20)),
+		ID:         int64(randomdata.Number(1, 20)),
 		Owner:      owner,
 		SkillName:  randomProgLang[rand.Intn(len(randomProgLang))],
 		SkillLevel: randomProfLvl[rand.Intn(len(randomProfLvl))],
