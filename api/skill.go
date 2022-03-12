@@ -16,6 +16,16 @@ type createSkillRequest struct {
 	SkillLevel string `json:"skill_level" binding:"required"`
 }
 
+// createSkill godoc
+// @Security bearerAuth
+// @Summary Create a skill
+// @Description This function is used to create a skill for an user.
+// @Tags Skill
+// @Accept json
+// @Produce json
+// @Param skill body api.createSkillRequest true "Create Skill"
+// @Success 200 {object} db.Skill
+// @Router /skills [post]
 func (server *Server) createSkill(ctx *gin.Context) {
 	var req createSkillRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -53,6 +63,16 @@ type getSkillRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+// getSkill godoc
+// @Security bearerAuth
+// @Summary Get a skill
+// @Tags Skill
+// @Description This function is used to get a skill for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {object} db.Skill
+// @Router /skills/{id} [get]
 func (server *Server) getSkill(ctx *gin.Context) {
 	var req getSkillRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -87,6 +107,17 @@ type listSkillsRequest struct {
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
 }
 
+// listSkills godoc
+// @Security bearerAuth
+// @Summary List skills
+// @Tags Skill
+// @Description This function is used to list skills for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param page_id query int true "page_id"
+// @Param page_size query int true "page_size"
+// @Success 200 {array} db.Skill
+// @Router /skills [get]
 func (server *Server) listSkills(ctx *gin.Context) {
 	var req listSkillsRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -123,6 +154,16 @@ type deleteSkillRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+// deleteSkill godoc
+// @Security bearerAuth
+// @Summary Delete a skill
+// @Tags Skill
+// @Description This function is used to delete a skill for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {string} string "Successfully deleted skill."
+// @Router /skills/{id} [delete]
 func (server *Server) deleteSkill(ctx *gin.Context) {
 	var req deleteSkillRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -131,10 +172,10 @@ func (server *Server) deleteSkill(ctx *gin.Context) {
 		return
 	}
 
-	// Get the contact to check ownership before deletion.
+	// Get the skill to check ownership before deletion.
 	skill, err := server.database.GetSkill(ctx, req.ID)
 	if err != nil {
-		// Check if we have no contact with that ID.
+		// Check if we have no skill with that ID.
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -147,7 +188,7 @@ func (server *Server) deleteSkill(ctx *gin.Context) {
 	// Check for owernership.
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
 	if skill.Owner != authPayload.Username {
-		err := errors.New("contact doesn't belong to the user")
+		err := errors.New("skill doesn't belong to the user")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
@@ -197,6 +238,16 @@ func skillPreviousValues(ctx *gin.Context, req *updateSkillRequest, server *Serv
 
 }
 
+// updateSkill godoc
+// @Security bearerAuth
+// @Summary Update a skill
+// @Tags Skill
+// @Description This function is used to update a skill for an user.
+// @Accept json
+// @Produce json
+// @Param skill body api.updateSkillRequest true "Update Skill"
+// @Success 200 {object} db.Skill
+// @Router /skills [patch]
 func (server *Server) updateSkill(ctx *gin.Context) {
 	var req updateSkillRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -204,10 +255,10 @@ func (server *Server) updateSkill(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	// Get the contact to check ownership before update.
+	// Get the skill to check ownership before update.
 	skill, err := server.database.GetSkill(ctx, req.ID)
 	if err != nil {
-		// Check if we have no contact with that ID.
+		// Check if we have no skill with that ID.
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -220,7 +271,7 @@ func (server *Server) updateSkill(ctx *gin.Context) {
 	// Check for owernership.
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
 	if skill.Owner != authPayload.Username {
-		err := errors.New("contact doesn't belong to the user")
+		err := errors.New("skill doesn't belong to the user")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}

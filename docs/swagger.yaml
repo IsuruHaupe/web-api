@@ -1,0 +1,541 @@
+definitions:
+  api.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - username
+    type: object
+  api.LoginUserRequest:
+    properties:
+      password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  api.LoginUserResponse:
+    properties:
+      access_token:
+        type: string
+      user:
+        $ref: '#/definitions/api.UserResponse'
+    type: object
+  api.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      fullname:
+        type: string
+      password_last_changed:
+        type: string
+      username:
+        type: string
+    type: object
+  api.createContactHasSkillRequest:
+    properties:
+      contact_id:
+        type: integer
+      skill_id:
+        type: integer
+    required:
+    - contact_id
+    - skill_id
+    type: object
+  api.createContactRequest:
+    properties:
+      email:
+        type: string
+      firstname:
+        type: string
+      fullname:
+        type: string
+      home_address:
+        type: string
+      lastname:
+        type: string
+      phone_number:
+        type: string
+    required:
+    - email
+    - firstname
+    - fullname
+    - home_address
+    - lastname
+    - phone_number
+    type: object
+  api.createSkillRequest:
+    properties:
+      skill_level:
+        type: string
+      skill_name:
+        type: string
+    required:
+    - skill_level
+    - skill_name
+    type: object
+  api.updateContactRequest:
+    properties:
+      email:
+        type: string
+      firstname:
+        type: string
+      fullname:
+        type: string
+      home_address:
+        type: string
+      id:
+        minimum: 1
+        type: integer
+      lastname:
+        type: string
+      phone_number:
+        type: string
+    required:
+    - id
+    type: object
+  api.updateSkillRequest:
+    properties:
+      id:
+        minimum: 1
+        type: integer
+      skill_level:
+        type: string
+      skill_name:
+        type: string
+    required:
+    - id
+    type: object
+  db.Contact:
+    properties:
+      email:
+        type: string
+      firstname:
+        type: string
+      fullname:
+        type: string
+      home_address:
+        type: string
+      id:
+        type: integer
+      lastname:
+        type: string
+      owner:
+        type: string
+      phone_number:
+        type: string
+    type: object
+  db.ContactHasSkill:
+    properties:
+      contact_id:
+        type: integer
+      owner:
+        type: string
+      skill_id:
+        type: integer
+    type: object
+  db.Skill:
+    properties:
+      id:
+        type: integer
+      owner:
+        type: string
+      skill_level:
+        type: string
+      skill_name:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /add-skill:
+    post:
+      consumes:
+      - application/json
+      description: This function is used to bind a skill to a contact.
+      parameters:
+      - description: Create Skill To Contact
+        in: body
+        name: createContactHasSkill
+        required: true
+        schema:
+          $ref: '#/definitions/api.createContactHasSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.ContactHasSkill'
+      security:
+      - bearerAuth: []
+      summary: Create a skill for a contact
+      tags:
+      - Bind Skill To Contact
+  /contacts:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to list contacts for an user.
+      parameters:
+      - description: page_id
+        in: query
+        name: page_id
+        required: true
+        type: integer
+      - description: page_size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Contact'
+            type: array
+      security:
+      - bearerAuth: []
+      summary: List contacts
+      tags:
+      - Contact
+    patch:
+      consumes:
+      - application/json
+      description: This function is used to update a contact for an user.
+      parameters:
+      - description: Update Contact
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateContactRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Contact'
+      security:
+      - bearerAuth: []
+      summary: Update a contact
+      tags:
+      - Contact
+    post:
+      consumes:
+      - application/json
+      description: This function is used to create a contact for an user.
+      parameters:
+      - description: Create Contact
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/api.createContactRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Contact'
+      security:
+      - bearerAuth: []
+      summary: Create a contact
+      tags:
+      - Contact
+  /contacts-with-skill:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to list all contacts with a given skill for
+        an user.
+      parameters:
+      - description: skill_name
+        in: query
+        name: skill_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Contact'
+            type: array
+      security:
+      - bearerAuth: []
+      summary: Get all the contacts with skill contacts
+      tags:
+      - Contact
+  /contacts-with-skill-and-level:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to list all contacts with a given skill and
+        a given level for an user.
+      parameters:
+      - description: skill_name
+        in: query
+        name: skill_name
+        required: true
+        type: string
+      - description: skill_level
+        in: query
+        name: skill_level
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Contact'
+            type: array
+      security:
+      - bearerAuth: []
+      summary: Get all the contacts with skill and level contacts
+      tags:
+      - Contact
+  /contacts/{id}:
+    delete:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to delete a contact for an user.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted contact.
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      summary: Delete a contact
+      tags:
+      - Contact
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to get a contact for an user.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Contact'
+      security:
+      - bearerAuth: []
+      summary: Get a contact
+      tags:
+      - Contact
+  /skills:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to list skills for an user.
+      parameters:
+      - description: page_id
+        in: query
+        name: page_id
+        required: true
+        type: integer
+      - description: page_size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Skill'
+            type: array
+      security:
+      - bearerAuth: []
+      summary: List skills
+      tags:
+      - Skill
+    patch:
+      consumes:
+      - application/json
+      description: This function is used to update a skill for an user.
+      parameters:
+      - description: Update Skill
+        in: body
+        name: skill
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Skill'
+      security:
+      - bearerAuth: []
+      summary: Update a skill
+      tags:
+      - Skill
+    post:
+      consumes:
+      - application/json
+      description: This function is used to create a skill for an user.
+      parameters:
+      - description: Create Skill
+        in: body
+        name: skill
+        required: true
+        schema:
+          $ref: '#/definitions/api.createSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Skill'
+      security:
+      - bearerAuth: []
+      summary: Create a skill
+      tags:
+      - Skill
+  /skills/{id}:
+    delete:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to delete a skill for an user.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted skill.
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      summary: Delete a skill
+      tags:
+      - Skill
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: This function is used to get a skill for an user.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Skill'
+      security:
+      - bearerAuth: []
+      summary: Get a skill
+      tags:
+      - Skill
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: This function is used to create a new user account.
+      parameters:
+      - description: Create User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UserResponse'
+      summary: Create a new user
+      tags:
+      - user
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: This function is used to authenticate a user providing the username
+        and password.
+      parameters:
+      - description: Login User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/api.LoginUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.LoginUserResponse'
+      security:
+      - bearerAuth: []
+      summary: Login an user
+      tags:
+      - user
+securityDefinitions:
+  bearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

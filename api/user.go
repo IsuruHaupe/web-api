@@ -11,14 +11,14 @@ import (
 	"github.com/lib/pq"
 )
 
-type createUserRequest struct {
+type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
 	FullName string `json:"full_name" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 }
 
-type userResponse struct {
+type UserResponse struct {
 	Username            string    `json:"username"`
 	Fullname            string    `json:"fullname"`
 	Email               string    `json:"email"`
@@ -26,8 +26,8 @@ type userResponse struct {
 	CreatedAt           time.Time `json:"created_at"`
 }
 
-func newUserResponse(user db.User) userResponse {
-	return userResponse{
+func newUserResponse(user db.User) UserResponse {
+	return UserResponse{
 		Username:            user.Username,
 		Fullname:            user.Fullname,
 		Email:               user.Email,
@@ -36,8 +36,17 @@ func newUserResponse(user db.User) userResponse {
 	}
 }
 
+// createUser godoc
+// @Summary Create a new user
+// @Description This function is used to create a new user account.
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param user body api.CreateUserRequest true "Create User"
+// @Success 200 {object} api.UserResponse
+// @Router /users [post]
 func (server *Server) createUser(ctx *gin.Context) {
-	var req createUserRequest
+	var req CreateUserRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -76,18 +85,28 @@ func (server *Server) createUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-type loginUserRequest struct {
+type LoginUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-type loginUserResponse struct {
+type LoginUserResponse struct {
 	AccessToken string       `json:"access_token"`
-	User        userResponse `json:"user"`
+	User        UserResponse `json:"user"`
 }
 
+// loginUser godoc
+// @Security bearerAuth
+// @Summary Login an user
+// @Description This function is used to authenticate a user providing the username and password.
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param user body api.LoginUserRequest true "Login User"
+// @Success 200 {object} api.LoginUserResponse
+// @Router /users/login [post]
 func (server *Server) loginUser(ctx *gin.Context) {
-	var req loginUserRequest
+	var req LoginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -116,7 +135,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	response := loginUserResponse{
+	response := LoginUserResponse{
 		AccessToken: accessToken,
 		User:        newUserResponse(user),
 	}

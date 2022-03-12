@@ -13,6 +13,16 @@ type createContactHasSkillRequest struct {
 	SkillID   int32 `json:"skill_id" binding:"required"`
 }
 
+// createSkillToContact godoc
+// @Security bearerAuth
+// @Summary Create a skill for a contact
+// @Description This function is used to bind a skill to a contact.
+// @Tags Bind Skill To Contact
+// @Accept json
+// @Produce json
+// @Param createContactHasSkill body api.createContactHasSkillRequest true "Create Skill To Contact"
+// @Success 200 {object} db.ContactHasSkill
+// @Router /add-skill [post]
 func (server *Server) createSkillToContact(ctx *gin.Context) {
 	var req createContactHasSkillRequest
 	// We verify that the JSON is correct, i.e : all fields are present.

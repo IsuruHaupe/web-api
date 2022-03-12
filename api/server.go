@@ -6,7 +6,10 @@ import (
 	auth "github.com/IsuruHaupe/web-api/auth/token"
 	"github.com/IsuruHaupe/web-api/config"
 	"github.com/IsuruHaupe/web-api/db/postgres"
+	"github.com/IsuruHaupe/web-api/docs"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"     // swagger embed files
+	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 )
 
 // This struct is used to regroup the database connection and the gin router.
@@ -32,7 +35,16 @@ func NewServer(config config.Config, database postgres.Database) (*Server, error
 	return server, nil
 }
 
+// This function will setup all routes.
 func (server *Server) setUpRouter() {
+	// Swagger 2.0 Meta Information
+	docs.SwaggerInfo.Title = "Web API."
+	docs.SwaggerInfo.Description = "Web API for managing skills and contacts."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"http"}
+
 	router := gin.Default()
 
 	// Group routes that need authentification/authorization together.
@@ -52,11 +64,13 @@ func (server *Server) setUpRouter() {
 	authRoutes.GET("/skills", server.listSkills)
 	authRoutes.DELETE("/skills/:id", server.deleteSkill)
 	authRoutes.PATCH("/skills", server.updateSkill)
-	// Binding skills and contacts route
+	// Binding skills and contacts route.
 	authRoutes.POST("/add-skill", server.createSkillToContact)
-	// Authentification routes
+	// Authentification routes.
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
+	// Documentation routes.
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	server.router = router
 }
 

@@ -14,6 +14,8 @@
 
 # PASETO 
 
+# Swagger
+
 # Docker 
 
 For docker change this line in `app.env` file: 

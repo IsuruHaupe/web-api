@@ -16,10 +16,20 @@ type createContactRequest struct {
 	Lastname    string `json:"lastname" binding:"required"`
 	Fullname    string `json:"fullname" binding:"required"`
 	HomeAddress string `json:"home_address" binding:"required"`
-	Email       string `json:"email" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
 	PhoneNumber string `json:"phone_number" binding:"required"`
 }
 
+// createContact godoc
+// @Security bearerAuth
+// @Summary Create a contact
+// @Description This function is used to create a contact for an user.
+// @Tags Contact
+// @Accept json
+// @Produce json
+// @Param contact body api.createContactRequest true "Create Contact"
+// @Success 200 {object} db.Contact
+// @Router /contacts [post]
 func (server *Server) createContact(ctx *gin.Context) {
 	var req createContactRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -57,12 +67,22 @@ func (server *Server) createContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contact)
 }
 
-type getContactRequest struct {
+type GetContactRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+// getContact godoc
+// @Security bearerAuth
+// @Summary Get a contact
+// @Tags Contact
+// @Description This function is used to get a contact for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {object} db.Contact
+// @Router /contacts/{id} [get]
 func (server *Server) getContact(ctx *gin.Context) {
-	var req getContactRequest
+	var req GetContactRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -92,13 +112,24 @@ func (server *Server) getContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contact)
 }
 
-type listContactsRequest struct {
+type ListContactsRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
 }
 
+// listContacts godoc
+// @Security bearerAuth
+// @Summary List contacts
+// @Tags Contact
+// @Description This function is used to list contacts for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param page_id query int true "page_id"
+// @Param page_size query int true "page_size"
+// @Success 200 {array} db.Contact
+// @Router /contacts [get]
 func (server *Server) listContacts(ctx *gin.Context) {
-	var req listContactsRequest
+	var req ListContactsRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -134,6 +165,16 @@ type deleteContactRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+// deleteContact godoc
+// @Security bearerAuth
+// @Summary Delete a contact
+// @Tags Contact
+// @Description This function is used to delete a contact for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {string} string "Successfully deleted contact."
+// @Router /contacts/{id} [delete]
 func (server *Server) deleteContact(ctx *gin.Context) {
 	var req deleteContactRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -247,6 +288,16 @@ func contactPreviousValues(ctx *gin.Context, req *updateContactRequest, server *
 	}
 }
 
+// updateContact godoc
+// @Security bearerAuth
+// @Summary Update a contact
+// @Tags Contact
+// @Description This function is used to update a contact for an user.
+// @Accept json
+// @Produce json
+// @Param contact body api.updateContactRequest true "Update Contact"
+// @Success 200 {object} db.Contact
+// @Router /contacts [patch]
 func (server *Server) updateContact(ctx *gin.Context) {
 	var req updateContactRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -308,6 +359,16 @@ type getContactWithSkillRequest struct {
 	SkillName string `form:"skill_name" binding:"required"`
 }
 
+// getContactWithSkill godoc
+// @Security bearerAuth
+// @Summary Get all the contacts with skill contacts
+// @Tags Contact
+// @Description This function is used to list all contacts with a given skill for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param skill_name query string true "skill_name"
+// @Success 200 {array} db.Contact
+// @Router /contacts-with-skill [get]
 func (server *Server) getContactWithSkill(ctx *gin.Context) {
 	var req getContactWithSkillRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
@@ -345,6 +406,17 @@ type getContactWithSkillAndLevelRequest struct {
 	SkillLevel string `form:"skill_level" binding:"required"`
 }
 
+// getContactWithSkillAndLevel godoc
+// @Security bearerAuth
+// @Summary Get all the contacts with skill and level contacts
+// @Tags Contact
+// @Description This function is used to list all contacts with a given skill and a given level for an user.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param skill_name query string true "skill_name"
+// @Param skill_level query string true "skill_level"
+// @Success 200 {array} db.Contact
+// @Router /contacts-with-skill-and-level [get]
 func (server *Server) getContactWithSkillAndLevel(ctx *gin.Context) {
 	var req getContactWithSkillAndLevelRequest
 	// We verify that the JSON is correct, i.e : all fields are present.

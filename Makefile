@@ -28,4 +28,7 @@ server:
 mock: 
 	mockgen -package mockdb -destination db/mock/database.go github.com/IsuruHaupe/web-api/db/postgres Database
 
-.PHONY: postgres createdb dropdb migrateforce migrateup migratedown sqlc tests server mock
+swagger:
+	swag init
+
+.PHONY: postgres createdb dropdb migrateforce migrateup migratedown sqlc tests server mock swagger

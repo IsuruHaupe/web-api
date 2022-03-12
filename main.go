@@ -10,6 +10,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// @securityDefinitions.apikey bearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// Load configuration using viper
 	config, err := config.LoadConfig(".")
