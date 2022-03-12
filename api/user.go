@@ -11,6 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// Request holder when receiving a create user request.
 type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -18,6 +19,7 @@ type CreateUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 }
 
+// This is expected returned reponse on succesful creation
 type UserResponse struct {
 	Username            string    `json:"username"`
 	Fullname            string    `json:"fullname"`

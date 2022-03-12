@@ -36,7 +36,7 @@ func TestCreateContactHasSkillAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "Test PASS",
+			name: "Pass",
 			body: gin.H{
 				"contact_id": contact.ID,
 				"skill_id":   skill.ID,
@@ -83,7 +83,7 @@ func TestCreateContactHasSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INTERNAL ERROR",
+			name: "Internal Error",
 			body: gin.H{
 				"contact_id": contact.ID,
 				"skill_id":   skill.ID,
@@ -102,7 +102,7 @@ func TestCreateContactHasSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INVALID PARAM",
+			name: "Bad Request",
 			body: gin.H{
 				"contact_id": "",
 				"skill_id":   skill.ID,

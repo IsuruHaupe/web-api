@@ -32,7 +32,7 @@ func TestGetContactAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name:      "Test PASS",
+			name:      "Pass",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -49,7 +49,7 @@ func TestGetContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "UnauthorizedUser",
+			name:      "Unauthorized User",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
@@ -79,7 +79,7 @@ func TestGetContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "Test CONTACT NOT FOUND",
+			name:      "Not Found",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -95,7 +95,7 @@ func TestGetContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "Test INTERNAL ERROR",
+			name:      "Internal Error",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -111,7 +111,7 @@ func TestGetContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "Test INVALID PARAM",
+			name:      "Bad Request",
 			contactID: 0,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -175,7 +175,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "OK",
+			name: "Pass",
 			query: Query{
 				skillName: "Go",
 			},
@@ -195,7 +195,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "UnauthorizedUser",
+			name: "Unauthorized User",
 			query: Query{
 				skillName: "Go",
 			},
@@ -229,7 +229,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InternalError",
+			name: "Internal Error",
 			query: Query{
 				skillName: "10",
 			},
@@ -247,7 +247,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidPageID",
+			name: "Bad Request",
 			query: Query{
 				skillName: "",
 			},
@@ -264,7 +264,7 @@ func TestGetContactsWithSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "NoFound",
+			name: "Not Found",
 			query: Query{
 				skillName: "Scala",
 			},
@@ -333,7 +333,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "OK",
+			name: "Pass",
 			query: Query{
 				skillName:  "Go",
 				skillLevel: "Proficient",
@@ -357,7 +357,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "UnauthorizedUser",
+			name: "Unauthorized User",
 			query: Query{
 				skillName:  "Go",
 				skillLevel: "Proficient",
@@ -401,7 +401,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InternalError",
+			name: "Internal Error",
 			query: Query{
 				skillName:  "10",
 				skillLevel: "Proficient",
@@ -424,7 +424,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidPageID",
+			name: "Bad Request",
 			query: Query{
 				skillName:  "",
 				skillLevel: "Proficient",
@@ -446,7 +446,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "NoFound",
+			name: "Not Found",
 			query: Query{
 				skillName:  "Go",
 				skillLevel: "Proficient",
@@ -511,7 +511,7 @@ func TestCreateContactAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "Test PASS",
+			name: "Pass",
 			body: gin.H{
 				"firstname":    contact.Firstname,
 				"lastname":     contact.Lastname,
@@ -576,7 +576,7 @@ func TestCreateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INTERNAL ERROR",
+			name: "Internal Error",
 			body: gin.H{
 				"firstname":    contact.Firstname,
 				"lastname":     contact.Lastname,
@@ -599,7 +599,7 @@ func TestCreateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INVALID PARAM",
+			name: "Bad Request",
 			body: gin.H{
 				"firstname":    "",
 				"lastname":     contact.Lastname,
@@ -673,7 +673,7 @@ func TestListContactsAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "OK",
+			name: "Pass",
 			query: Query{
 				pageID:   1,
 				pageSize: n,
@@ -716,7 +716,7 @@ func TestListContactsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InternalError",
+			name: "Internal Error",
 			query: Query{
 				pageID:   1,
 				pageSize: n,
@@ -735,7 +735,7 @@ func TestListContactsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidPageID",
+			name: "Bad Request",
 			query: Query{
 				pageID:   -1,
 				pageSize: n,
@@ -753,7 +753,7 @@ func TestListContactsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidPageSize",
+			name: "Bad Request",
 			query: Query{
 				pageID:   1,
 				pageSize: 100000,
@@ -814,7 +814,7 @@ func TestDeleteContactAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name:      "OK",
+			name:      "Pass",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -835,7 +835,7 @@ func TestDeleteContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "UnauthorizedUser",
+			name:      "Unauthorized User",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
@@ -873,7 +873,7 @@ func TestDeleteContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "InternalError",
+			name:      "Internal Error",
 			contactID: contact.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -894,7 +894,7 @@ func TestDeleteContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "BadRequest",
+			name:      "Bad Request",
 			contactID: 0,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -950,7 +950,7 @@ func TestUpdateContactAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "Test PASS",
+			name: "Pass",
 			body: gin.H{
 				"id":        contact.ID,
 				"firstname": "Isuru",
@@ -979,7 +979,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "UnauthorizedUser",
+			name: "Unauthorized User",
 			body: gin.H{
 				"id":        contact.ID,
 				"firstname": "Isuru",
@@ -1031,7 +1031,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test BAD REQUEST",
+			name: "Bad Request",
 			body: gin.H{
 				"id":        0,
 				"firstname": "Isuru",
@@ -1049,7 +1049,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test NOT FOUND",
+			name: "Not Found",
 			body: gin.H{
 				"id":        contact.ID,
 				"firstname": "Isuru",
@@ -1075,7 +1075,7 @@ func TestUpdateContactAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INTERNAL SERVER ERROR",
+			name: "Internal Error",
 			body: gin.H{
 				"id":        contact.ID,
 				"firstname": "Isuru",

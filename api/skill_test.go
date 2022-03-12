@@ -33,7 +33,7 @@ func TestGetSkillAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name:    "Test PASS",
+			name:    "Pass",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -50,7 +50,7 @@ func TestGetSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "UnauthorizedUser",
+			name:    "Unauthorized User",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
@@ -80,7 +80,7 @@ func TestGetSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "Test SKILL NOT FOUND",
+			name:    "Not Found",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -96,7 +96,7 @@ func TestGetSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "Test INTERNAL ERROR",
+			name:    "Internal Error",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -112,7 +112,7 @@ func TestGetSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "Test INVALID PARAM",
+			name:    "Bad Request",
 			skillID: 0,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -167,7 +167,7 @@ func TestCreateSkillAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "Test PASS",
+			name: "Pass",
 			body: gin.H{
 				"skill_name":  skill.SkillName,
 				"skill_level": skill.SkillLevel,
@@ -215,7 +215,7 @@ func TestCreateSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INTERNAL ERROR",
+			name: "Internal Error",
 			body: gin.H{
 				"skill_name":  skill.SkillName,
 				"skill_level": skill.SkillLevel,
@@ -234,7 +234,7 @@ func TestCreateSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INVALID PARAM",
+			name: "Invalid Param",
 			body: gin.H{
 				"skill_name":  "",
 				"skill_level": skill.SkillLevel,
@@ -303,7 +303,7 @@ func TestListSkillsAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "OK",
+			name: "Pass",
 			query: Query{
 				pageID:   1,
 				pageSize: n,
@@ -346,7 +346,7 @@ func TestListSkillsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InternalError",
+			name: "Internal Error",
 			query: Query{
 				pageID:   1,
 				pageSize: n,
@@ -365,7 +365,7 @@ func TestListSkillsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidPageID",
+			name: "Bad Request",
 			query: Query{
 				pageID:   -1,
 				pageSize: n,
@@ -383,7 +383,7 @@ func TestListSkillsAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidPageSize",
+			name: "Bad Request",
 			query: Query{
 				pageID:   1,
 				pageSize: 100000,
@@ -444,7 +444,7 @@ func TestDeleteSkillAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name:    "OK",
+			name:    "Pass",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -464,7 +464,7 @@ func TestDeleteSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "UnauthorizedUser",
+			name:    "Unauthorized User",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
@@ -502,7 +502,7 @@ func TestDeleteSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "InternalError",
+			name:    "Internal Error",
 			skillID: skill.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -522,7 +522,7 @@ func TestDeleteSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name:    "BadRequest",
+			name:    "Bad Request",
 			skillID: 0,
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
@@ -578,7 +578,7 @@ func TestUpdateSkillAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "Test PASS",
+			name: "Pass",
 			body: gin.H{
 				"id":          skill.ID,
 				"skill_level": "Expert",
@@ -607,7 +607,7 @@ func TestUpdateSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test BAD REQUEST",
+			name: "Bad Request",
 			body: gin.H{
 				"id":        0,
 				"firstname": "Isuru",
@@ -632,7 +632,7 @@ func TestUpdateSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test NOT FOUND",
+			name: "Not Found",
 			body: gin.H{
 				"id":        skill.ID,
 				"firstname": "Isuru",
@@ -658,7 +658,7 @@ func TestUpdateSkillAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Test INTERNAL SERVER ERROR",
+			name: "Internal Error",
 			body: gin.H{
 				"id":        skill.ID,
 				"firstname": "Isuru",

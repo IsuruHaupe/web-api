@@ -12,7 +12,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 )
 
-// This struct is used to regroup the database connection and the gin router.
+// This struct is used to regroup the database connection, the gin router and the configuration.
 type Server struct {
 	config     config.Config
 	database   postgres.Database
@@ -24,7 +24,7 @@ type Server struct {
 func NewServer(config config.Config, database postgres.Database) (*Server, error) {
 	tokenMaker, err := auth.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create token make : %w", err)
+		return nil, fmt.Errorf("cannot create token maker : %w", err)
 	}
 	server := &Server{
 		config:     config,
@@ -37,7 +37,7 @@ func NewServer(config config.Config, database postgres.Database) (*Server, error
 
 // This function will setup all routes.
 func (server *Server) setUpRouter() {
-	// Swagger 2.0 Meta Information
+	// Swagger 2.0 Meta Information.
 	docs.SwaggerInfo.Title = "Web API."
 	docs.SwaggerInfo.Description = "Web API for managing skills and contacts."
 	docs.SwaggerInfo.Version = "1.0"
@@ -69,7 +69,7 @@ func (server *Server) setUpRouter() {
 	// Authentification routes.
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
-	// Documentation routes.
+	// Documentation routes, available at : http://localhost:8080/swagger/index.html.
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	server.router = router
 }
@@ -79,6 +79,7 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
+// Wrapper for returning error.
 func errorResponse(err error) gin.H {
 	return gin.H{"error": err.Error()}
 }

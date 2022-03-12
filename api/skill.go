@@ -11,6 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// Request holder when receiving a create skill request.
 type createSkillRequest struct {
 	SkillName  string `json:"skill_name" binding:"required"`
 	SkillLevel string `json:"skill_level" binding:"required"`
@@ -59,6 +60,7 @@ func (server *Server) createSkill(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, skill)
 }
 
+// Request holder when receiving a get skill request.
 type getSkillRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
@@ -102,6 +104,7 @@ func (server *Server) getSkill(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, skill)
 }
 
+// Request holder when receiving a list skills request.
 type listSkillsRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
@@ -150,6 +153,7 @@ func (server *Server) listSkills(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, skills)
 }
 
+// Request holder when receiving a delete skill request.
 type deleteSkillRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
@@ -202,6 +206,7 @@ func (server *Server) deleteSkill(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "Successfully deleted skill.")
 }
 
+// Request holder when receiving an update skill request.
 type updateSkillRequest struct {
 	ID         int64  `json:"id" binding:"required,min=1"`
 	SkillName  string `json:"skill_name,omitempty"`

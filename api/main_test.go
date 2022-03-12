@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newTestServer creates a new test server using authentification.
 func newTestServer(t *testing.T, database postgres.Database) *Server {
 	config := config.Config{
 		TokenSymmetricKey:   auth.RandomString(32),

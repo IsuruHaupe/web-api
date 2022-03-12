@@ -11,6 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// Request holder when receiving a create contact request.
 type createContactRequest struct {
 	Firstname   string `json:"firstname" binding:"required"`
 	Lastname    string `json:"lastname" binding:"required"`
@@ -67,6 +68,7 @@ func (server *Server) createContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contact)
 }
 
+// Request holder for get contact request.
 type GetContactRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
@@ -112,6 +114,7 @@ func (server *Server) getContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contact)
 }
 
+// Request holder for listing contact request.
 type ListContactsRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
@@ -161,6 +164,7 @@ func (server *Server) listContacts(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contacts)
 }
 
+// Request holder for deleting contact request.
 type deleteContactRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
@@ -213,6 +217,7 @@ func (server *Server) deleteContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "Successfully deleted contact.")
 }
 
+// Request holder for updating contact request.
 type updateContactRequest struct {
 	ID          int64  `json:"id" binding:"required,min=1"`
 	Firstname   string `json:"firstname,omitempty"`
@@ -355,6 +360,7 @@ func (server *Server) updateContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contact)
 }
 
+// Request holder for get contact with a specific skill request.
 type getContactWithSkillRequest struct {
 	SkillName string `form:"skill_name" binding:"required"`
 }
@@ -401,6 +407,7 @@ func (server *Server) getContactWithSkill(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contacts)
 }
 
+// Request holder for get contact with a specific skill and level request.
 type getContactWithSkillAndLevelRequest struct {
 	SkillName  string `form:"skill_name" binding:"required"`
 	SkillLevel string `form:"skill_level" binding:"required"`
