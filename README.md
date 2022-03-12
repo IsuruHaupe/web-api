@@ -139,7 +139,7 @@ DB_SOURCE=postgresql://root:secret@postgres:5432/web-api?sslmode=disable
     ```
 # Swagger 
 
-You can follow and use the application via the swagger. When the app is running go to [this link](http://localhost:8080/swagger/index.html) and you will will access the swagger documentation of the API. All the routes except for creating a new user are restricted. So when, you created a new user and logged in via the specific route, remember to add the token in the Authorize so that all the requests used the token to be identified.
+You can follow and use the application via the swagger. When the app is running go to [this link](http://localhost:8080/swagger/index.html) and you will will access the swagger documentation of the API. All the routes except for creating a new user are restricted. When you created a new user and logged in via the specific route, remember to add the token in the Authorize so that all the requests used the token to be identified.
 
 * Swagger documentation
 
