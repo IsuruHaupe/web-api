@@ -4,7 +4,7 @@ This is a simple API where an user can get a quick overview over all contacts re
 
 The following use cases are implemented : 
 
-* **UC1** : CRUD endpoint for managing contacts. A contact is composed of the following attributes : 
+* [X] **UC1** : CRUD endpoint for managing contacts. A contact is composed of the following attributes : 
     * Firstname
     * Lastname
     * Fullname
@@ -12,13 +12,13 @@ The following use cases are implemented :
     * Email
     * Mobile phone number
 
-* **UC2** : CRUD endpoint for managing skills. A skill is composed of the following attributes : 
+* [X] **UC2** : CRUD endpoint for managing skills. A skill is composed of the following attributes : 
     * Name
     * Level (expertise)
 
-* **UC3** : Documentation using Swagger. More on that in [Swagger](#swagger) section.
+* [X] **UC3** : Documentation using Swagger. More on that in [Swagger](#swagger) section.
 
-* **UC4** : Authentification/Authorization, where users can only change their contacts and skills.
+* [X] **UC4** : Authentification/Authorization, where users can only change their contacts and skills.
 
 # Makefile 
 
@@ -90,12 +90,6 @@ We use a makefile to easily setup the local environment. The following commands 
     ```
 
 ### Running the tests 
-
-- Generate SQL CRUD with sqlc:
-
-    ```bash
-    make sqlc
-    ```
 
 - Generate DB mock with gomock:
 
