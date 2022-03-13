@@ -69,7 +69,7 @@ func (server *Server) createContact(ctx *gin.Context) {
 }
 
 // Request holder for get contact request.
-type GetContactRequest struct {
+type getContactRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
@@ -84,7 +84,7 @@ type GetContactRequest struct {
 // @Success 200 {object} db.Contact
 // @Router /contacts/{id} [get]
 func (server *Server) getContact(ctx *gin.Context) {
-	var req GetContactRequest
+	var req getContactRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -115,7 +115,7 @@ func (server *Server) getContact(ctx *gin.Context) {
 }
 
 // Request holder for listing contact request.
-type ListContactsRequest struct {
+type listContactsRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=1,max=10"`
 }
@@ -132,7 +132,7 @@ type ListContactsRequest struct {
 // @Success 200 {array} db.Contact
 // @Router /contacts [get]
 func (server *Server) listContacts(ctx *gin.Context) {
-	var req ListContactsRequest
+	var req listContactsRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

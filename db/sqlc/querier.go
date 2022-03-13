@@ -4,14 +4,18 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateContact(ctx context.Context, arg CreateContactParams) (Contact, error)
 	CreateContactHasSkill(ctx context.Context, arg CreateContactHasSkillParams) (ContactHasSkill, error)
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateSkill(ctx context.Context, arg CreateSkillParams) (Skill, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteContact(ctx context.Context, id int64) error
+	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteSkill(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, username string) error
 	GetContact(ctx context.Context, id int64) (Contact, error)
@@ -25,6 +29,7 @@ type Querier interface {
 	GetIfExistsSkillID(ctx context.Context, id int64) (bool, error)
 	GetLastname(ctx context.Context, id int64) (string, error)
 	GetPhoneNumber(ctx context.Context, id int64) (string, error)
+	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetSkill(ctx context.Context, id int64) (Skill, error)
 	GetSkillLevel(ctx context.Context, id int64) (string, error)
 	GetSkillName(ctx context.Context, id int64) (string, error)

@@ -13,6 +13,7 @@ type Config struct {
 	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	SessionDuration     time.Duration `mapstructure:"SESSION_DURATION"`
 }
 
 // Read config file or environment var and parse them.

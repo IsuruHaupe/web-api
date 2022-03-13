@@ -59,7 +59,7 @@ func TestCreateUserAPI(t *testing.T) {
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "OK",
+			name: "Pass",
 			body: gin.H{
 				"username":  user.Username,
 				"password":  password,
@@ -83,7 +83,7 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InternalError",
+			name: "Internal Error",
 			body: gin.H{
 				"username":  user.Username,
 				"password":  password,
@@ -101,7 +101,7 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "DuplicateUsername",
+			name: "Duplicate Username",
 			body: gin.H{
 				"username":  user.Username,
 				"password":  password,
@@ -119,7 +119,7 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidUsername",
+			name: "Invalid Username",
 			body: gin.H{
 				"username":  "invalid-user#1",
 				"password":  password,
@@ -136,7 +136,7 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "InvalidEmail",
+			name: "Invalid Email",
 			body: gin.H{
 				"username":  user.Username,
 				"password":  password,
@@ -153,7 +153,7 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "TooShortPassword",
+			name: "Password Too Short",
 			body: gin.H{
 				"username":  user.Username,
 				"password":  "123",
@@ -189,6 +189,128 @@ func TestCreateUserAPI(t *testing.T) {
 			require.NoError(t, err)
 
 			url := "/users"
+			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			currentTest.checkResponse(recorder)
+		})
+	}
+}
+
+func TestLoginUserAPI(t *testing.T) {
+	user, password := randomUser(t)
+
+	testCases := []struct {
+		name          string
+		body          gin.H
+		buildStubs    func(database *mockdb.MockDatabase)
+		checkResponse func(recoder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"username": user.Username,
+				"password": password,
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(user, nil)
+				database.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(1)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Not Found",
+			body: gin.H{
+				"username": "NotFound",
+				"password": password,
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name: "Incorrect Password",
+			body: gin.H{
+				"username": user.Username,
+				"password": "incorrect",
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Error",
+			body: gin.H{
+				"username": user.Username,
+				"password": password,
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Username",
+			body: gin.H{
+				"username":  "invalid-user#1",
+				"password":  password,
+				"full_name": user.Fullname,
+				"email":     user.Email,
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		currentTest := testCases[i]
+
+		t.Run(currentTest.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			database := mockdb.NewMockDatabase(ctrl)
+			currentTest.buildStubs(database)
+
+			server := newTestServer(t, database)
+			recorder := httptest.NewRecorder()
+
+			// Marshal body data to JSON
+			data, err := json.Marshal(currentTest.body)
+			require.NoError(t, err)
+
+			url := "/users/login"
 			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 

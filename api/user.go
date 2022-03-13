@@ -8,11 +8,12 @@ import (
 	"github.com/IsuruHaupe/web-api/auth"
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
 // Request holder when receiving a create user request.
-type CreateUserRequest struct {
+type createUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
 	FullName string `json:"full_name" binding:"required"`
@@ -20,7 +21,7 @@ type CreateUserRequest struct {
 }
 
 // This is expected returned reponse on succesful creation
-type UserResponse struct {
+type userResponse struct {
 	Username            string    `json:"username"`
 	Fullname            string    `json:"fullname"`
 	Email               string    `json:"email"`
@@ -28,8 +29,8 @@ type UserResponse struct {
 	CreatedAt           time.Time `json:"created_at"`
 }
 
-func newUserResponse(user db.User) UserResponse {
-	return UserResponse{
+func newUserResponse(user db.User) userResponse {
+	return userResponse{
 		Username:            user.Username,
 		Fullname:            user.Fullname,
 		Email:               user.Email,
@@ -44,11 +45,11 @@ func newUserResponse(user db.User) UserResponse {
 // @Tags user
 // @Accept json
 // @Produce json
-// @Param user body api.CreateUserRequest true "Create User"
-// @Success 200 {object} api.UserResponse
+// @Param user body api.createUserRequest true "Create User"
+// @Success 200 {object} api.userResponse
 // @Router /users [post]
 func (server *Server) createUser(ctx *gin.Context) {
-	var req CreateUserRequest
+	var req createUserRequest
 	// We verify that the JSON is correct, i.e : all fields are present.
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -87,14 +88,18 @@ func (server *Server) createUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-type LoginUserRequest struct {
+type loginUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-type LoginUserResponse struct {
-	AccessToken string       `json:"access_token"`
-	User        UserResponse `json:"user"`
+type loginUserResponse struct {
+	SessionID             uuid.UUID    `json:"session_id"`
+	AccessToken           string       `json:"access_token"`
+	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
+	SessionToken          string       `json:"session_token"`
+	SessionTokenExpiresAt time.Time    `json:"session_token_expires_at"`
+	User                  userResponse `json:"user"`
 }
 
 // loginUser godoc
@@ -104,11 +109,11 @@ type LoginUserResponse struct {
 // @Tags user
 // @Accept json
 // @Produce json
-// @Param user body api.LoginUserRequest true "Login User"
-// @Success 200 {object} api.LoginUserResponse
+// @Param user body api.loginUserRequest true "Login User"
+// @Success 200 {object} api.loginUserResponse
 // @Router /users/login [post]
 func (server *Server) loginUser(ctx *gin.Context) {
-	var req LoginUserRequest
+	var req loginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -131,15 +136,39 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, err := server.tokenMaker.CreateToken(user.Username, server.config.AccessTokenDuration)
+	accessToken, accessPayload, err := server.tokenMaker.CreateToken(user.Username, server.config.AccessTokenDuration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	response := LoginUserResponse{
-		AccessToken: accessToken,
-		User:        newUserResponse(user),
+	sessionToken, sessionPayload, err := server.tokenMaker.CreateToken(user.Username, server.config.SessionDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	session, err := server.database.CreateSession(ctx, db.CreateSessionParams{
+		ID:           sessionPayload.ID,
+		Username:     user.Username,
+		SessionToken: sessionToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		IsBlocked:    false,
+		ExpiresAt:    sessionPayload.ExpiredAt,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	response := loginUserResponse{
+		SessionID:             session.ID,
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
+		SessionToken:          sessionToken,
+		SessionTokenExpiresAt: sessionPayload.ExpiredAt,
+		User:                  newUserResponse(user),
 	}
 
 	ctx.JSON(http.StatusOK, response)

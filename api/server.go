@@ -69,6 +69,7 @@ func (server *Server) setUpRouter() {
 	// Authentification routes.
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
+	router.POST("/tokens/renew_access", server.renewAccessToken)
 	// Documentation routes, available at : http://localhost:8080/swagger/index.html.
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	server.router = router

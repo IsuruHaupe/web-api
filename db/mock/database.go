@@ -10,6 +10,7 @@ import (
 
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockDatabase is a mock of Database interface.
@@ -65,6 +66,21 @@ func (mr *MockDatabaseMockRecorder) CreateContactHasSkill(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContactHasSkill", reflect.TypeOf((*MockDatabase)(nil).CreateContactHasSkill), arg0, arg1)
 }
 
+// CreateSession mocks base method.
+func (m *MockDatabase) CreateSession(arg0 context.Context, arg1 db.CreateSessionParams) (db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSession", arg0, arg1)
+	ret0, _ := ret[0].(db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockDatabaseMockRecorder) CreateSession(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockDatabase)(nil).CreateSession), arg0, arg1)
+}
+
 // CreateSkill mocks base method.
 func (m *MockDatabase) CreateSkill(arg0 context.Context, arg1 db.CreateSkillParams) (db.Skill, error) {
 	m.ctrl.T.Helper()
@@ -107,6 +123,20 @@ func (m *MockDatabase) DeleteContact(arg0 context.Context, arg1 int64) error {
 func (mr *MockDatabaseMockRecorder) DeleteContact(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContact", reflect.TypeOf((*MockDatabase)(nil).DeleteContact), arg0, arg1)
+}
+
+// DeleteSession mocks base method.
+func (m *MockDatabase) DeleteSession(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSession", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSession indicates an expected call of DeleteSession.
+func (mr *MockDatabaseMockRecorder) DeleteSession(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSession", reflect.TypeOf((*MockDatabase)(nil).DeleteSession), arg0, arg1)
 }
 
 // DeleteSkill mocks base method.
@@ -300,6 +330,21 @@ func (m *MockDatabase) GetPhoneNumber(arg0 context.Context, arg1 int64) (string,
 func (mr *MockDatabaseMockRecorder) GetPhoneNumber(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPhoneNumber", reflect.TypeOf((*MockDatabase)(nil).GetPhoneNumber), arg0, arg1)
+}
+
+// GetSession mocks base method.
+func (m *MockDatabase) GetSession(arg0 context.Context, arg1 uuid.UUID) (db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", arg0, arg1)
+	ret0, _ := ret[0].(db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockDatabaseMockRecorder) GetSession(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockDatabase)(nil).GetSession), arg0, arg1)
 }
 
 // GetSkill mocks base method.
