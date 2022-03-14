@@ -19,6 +19,7 @@ type Querier interface {
 	DeleteSkill(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, username string) error
 	GetContact(ctx context.Context, id int64) (Contact, error)
+	GetContactSkills(ctx context.Context, contactID int32) ([]Skill, error)
 	GetContactsWithSkill(ctx context.Context, skillName string) ([]Contact, error)
 	GetContactsWithSkillAndLevel(ctx context.Context, arg GetContactsWithSkillAndLevelParams) ([]Contact, error)
 	GetEmail(ctx context.Context, id int64) (string, error)

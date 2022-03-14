@@ -86,6 +86,43 @@ func (q *Queries) GetContact(ctx context.Context, id int64) (Contact, error) {
 	return i, err
 }
 
+const getContactSkills = `-- name: GetContactSkills :many
+SELECT id, owner, skill_name, skill_level FROM skills
+WHERE id IN (
+    SELECT skill_id
+    FROM contact_has_skill
+    WHERE contact_id = $1
+)
+`
+
+func (q *Queries) GetContactSkills(ctx context.Context, contactID int32) ([]Skill, error) {
+	rows, err := q.db.QueryContext(ctx, getContactSkills, contactID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Skill{}
+	for rows.Next() {
+		var i Skill
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.SkillName,
+			&i.SkillLevel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getContactsWithSkill = `-- name: GetContactsWithSkill :many
 SELECT id, owner, firstname, lastname, fullname, home_address, email, phone_number FROM contacts
 WHERE id IN (

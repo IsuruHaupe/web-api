@@ -155,6 +155,147 @@ func TestGetContactAPI(t *testing.T) {
 	}
 }
 
+func TestGetContactSkillsAPI(t *testing.T) {
+	user, _ := randomUser(t)
+	contact := randomContact(user.Username)
+	n := 5
+	skills := make([]db.Skill, n)
+	for i := 0; i < n; i++ {
+		skills[i] = randomSkill(user.Username)
+	}
+
+	testCases := []struct {
+		name          string
+		contactID     int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker auth.Maker)
+		buildStubs    func(database *mockdb.MockDatabase)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:      "Pass",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactSkills(gomock.Any(), gomock.Eq(int32(contact.ID))).
+					Times(1).
+					Return(skills, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				//requireBodyMatchSkills(t, recorder.Body, skills)
+			},
+		},
+		{
+			name:      "Unauthorized User",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactSkills(gomock.Any(), gomock.Eq(int32(contact.ID))).
+					Times(1).
+					Return(skills, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:      "No Authorization",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactSkills(gomock.Any(), gomock.Eq(int32(contact.ID))).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:      "Internal Error",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactSkills(gomock.Any(), gomock.Eq(int32(contact.ID))).
+					Times(1).
+					Return([]db.Skill{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:      "Bad Request",
+			contactID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:      "Not Found",
+			contactID: contact.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker auth.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
+			buildStubs: func(database *mockdb.MockDatabase) {
+				database.EXPECT().
+					GetContactSkills(gomock.Any(), gomock.Eq(int32(contact.ID))).
+					Times(1).
+					Return([]db.Skill{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		currentTest := testCases[i]
+
+		t.Run(currentTest.name, func(t *testing.T) {
+			// Init mock.
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			database := mockdb.NewMockDatabase(ctrl)
+
+			// Create a stub.
+			currentTest.buildStubs(database)
+
+			// Start server and tests.
+			server := newTestServer(t, database)
+			recorder := httptest.NewRecorder()
+			url := fmt.Sprintf("/contact-skills/%d", currentTest.contactID)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			currentTest.setupAuth(t, request, server.tokenMaker)
+			server.router.ServeHTTP(recorder, request)
+
+			// Check results.
+			currentTest.checkResponse(t, recorder)
+		})
+	}
+}
+
 func TestGetContactsWithSkillAPI(t *testing.T) {
 	user, _ := randomUser(t)
 	n := 5
@@ -353,7 +494,7 @@ func TestGetContactsWithSkillAndLevelAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				//requireBodyMatchContacts(t, recorder.Body, contacts)
+				requireBodyMatchContacts(t, recorder.Body, contacts)
 			},
 		},
 		{

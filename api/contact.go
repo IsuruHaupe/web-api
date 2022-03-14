@@ -114,6 +114,54 @@ func (server *Server) getContact(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, contact)
 }
 
+// Request holder for get contact skills request.
+type getContactSkillsRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+// getContactSkills godoc
+// @Security bearerAuth
+// @Summary Get a contact's skills
+// @Tags Contact
+// @Description This function is used to get all the skills for a given contact id.
+// @Accept application/x-www-form-urlencoded
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {array} db.Skill
+// @Router /contact-skills/{id} [get]
+func (server *Server) getContactSkills(ctx *gin.Context) {
+	var req getContactSkillsRequest
+	// We verify that the JSON is correct, i.e : all fields are present.
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	skills, err := server.database.GetContactSkills(ctx, req.ID)
+	if err != nil {
+		// Check if we have no contact with that ID.
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Check for owernership.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*auth.Payload)
+	for _, skill := range skills {
+		if skill.Owner != authPayload.Username {
+			err := errors.New("skill doesn't belong to the user")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, skills)
+}
+
 // Request holder for listing contact request.
 type listContactsRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`

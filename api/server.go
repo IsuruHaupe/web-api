@@ -5,7 +5,7 @@ import (
 
 	auth "github.com/IsuruHaupe/web-api/auth/token"
 	"github.com/IsuruHaupe/web-api/config"
-	"github.com/IsuruHaupe/web-api/db/postgres"
+	"github.com/IsuruHaupe/web-api/db/database"
 	"github.com/IsuruHaupe/web-api/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"     // swagger embed files
@@ -15,13 +15,13 @@ import (
 // This struct is used to regroup the database connection, the gin router and the configuration.
 type Server struct {
 	config     config.Config
-	database   postgres.Database
+	database   database.Database
 	tokenMaker auth.Maker
 	router     *gin.Engine
 }
 
 // This function will create a new server and setup all routes.
-func NewServer(config config.Config, database postgres.Database) (*Server, error) {
+func NewServer(config config.Config, database database.Database) (*Server, error) {
 	tokenMaker, err := auth.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker : %w", err)
@@ -53,6 +53,7 @@ func (server *Server) setUpRouter() {
 	// Contacts routes.
 	authRoutes.POST("/contacts", server.createContact)
 	authRoutes.GET("/contacts/:id", server.getContact)
+	authRoutes.GET("/contact-skills/:id", server.getContactSkills)
 	authRoutes.GET("/contacts", server.listContacts)
 	authRoutes.GET("/contacts-with-skill", server.getContactWithSkill)
 	authRoutes.GET("/contacts-with-skill-and-level", server.getContactWithSkillAndLevel)

@@ -37,6 +37,14 @@ RETURNING *;
 -- name: DeleteContact :exec
 DELETE FROM contacts WHERE id = $1;
 
+-- name: GetContactSkills :many
+SELECT * FROM skills
+WHERE id IN (
+    SELECT skill_id
+    FROM contact_has_skill
+    WHERE contact_id = $1
+);
+
 -- name: GetContactsWithSkillAndLevel :many
 SELECT * FROM contacts
 WHERE id IN (

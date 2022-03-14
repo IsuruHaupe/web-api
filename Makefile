@@ -26,7 +26,7 @@ server:
 	go run main.go
 
 mock: 
-	mockgen -package mockdb -destination db/mock/database.go github.com/IsuruHaupe/web-api/db/postgres Database
+	mockgen -package mockdb -destination db/mock/mockdb.go github.com/IsuruHaupe/web-api/db/database Database
 
 swagger:
 	swag init

@@ -163,6 +163,7 @@ func TestGetContactsWithSkillAndLevel(t *testing.T) {
 	for _, contact := range contacts {
 		require.NotEmpty(t, contact)
 
+		require.Equal(t, originalContact.Owner, contact.Owner)
 		require.Equal(t, originalContact.ID, contact.ID)
 		require.Equal(t, originalContact.Firstname, contact.Firstname)
 		require.Equal(t, originalContact.Lastname, contact.Lastname)
@@ -201,6 +202,7 @@ func TestGetContactsWithSkill(t *testing.T) {
 	for _, contact := range contacts {
 		require.NotEmpty(t, contact)
 
+		require.Equal(t, originalContact.Owner, contact.Owner)
 		require.Equal(t, originalContact.ID, contact.ID)
 		require.Equal(t, originalContact.Firstname, contact.Firstname)
 		require.Equal(t, originalContact.Lastname, contact.Lastname)
@@ -208,6 +210,42 @@ func TestGetContactsWithSkill(t *testing.T) {
 		require.Equal(t, originalContact.HomeAddress, contact.HomeAddress)
 		require.Equal(t, originalContact.Email, contact.Email)
 		require.Equal(t, originalContact.PhoneNumber, contact.PhoneNumber)
+	}
+
+	err = testQueries.DeleteUser(context.Background(), user.Username)
+	require.NoError(t, err)
+}
+
+func TestGetContactSkills(t *testing.T) {
+	user := CreateRandomUser(t)
+	// Create a random contact.
+	contact := CreateRandomContact(t, user)
+	// Create a random skill.
+	originaSkill := CreateRandomSkill(t, user)
+
+	// Bind a contact with a skill
+	argsContactHasSkill := CreateContactHasSkillParams{
+		Owner:     user.Username,
+		ContactID: int32(contact.ID),
+		SkillID:   int32(originaSkill.ID),
+	}
+
+	contactHasSkill, err := testQueries.CreateContactHasSkill(context.Background(), argsContactHasSkill)
+	require.NoError(t, err)
+	require.NotEmpty(t, contactHasSkill)
+
+	// Get the list of skills for contact.
+	skills, err := testQueries.GetContactSkills(context.Background(), int32(contact.ID))
+	require.NoError(t, err)
+	require.Len(t, skills, 1)
+
+	for _, skill := range skills {
+		require.NotEmpty(t, skill)
+
+		require.Equal(t, skill.Owner, originaSkill.Owner)
+		require.Equal(t, skill.ID, originaSkill.ID)
+		require.Equal(t, skill.SkillName, originaSkill.SkillName)
+		require.Equal(t, skill.SkillLevel, originaSkill.SkillLevel)
 	}
 
 	err = testQueries.DeleteUser(context.Background(), user.Username)

@@ -3,16 +3,12 @@ package postgres
 import (
 	"database/sql"
 
+	"github.com/IsuruHaupe/web-api/db/database"
+
 	db "github.com/IsuruHaupe/web-api/db/sqlc"
 )
 
-// We use embedding to ask for struct implementing this interface to implement every function in db.Querier.
-// This is useful for switching between database implementation.
-type Database interface {
-	db.Querier
-}
-
-// Postgres implementation.
+// Postgres implementation, we use embedding to implement the database.Database interface for genericity purpose and make testing easier.
 type PostgresDatabase struct {
 	connection *sql.DB
 	*db.Queries
@@ -20,7 +16,7 @@ type PostgresDatabase struct {
 
 // NewPostgresConnection creates a new PostgresDatabase object with a connection and a
 // handler for calling database functions.
-func NewPostgresConnection(connection *sql.DB) Database {
+func NewPostgresConnection(connection *sql.DB) database.Database {
 	return &PostgresDatabase{
 		connection: connection,
 		Queries:    db.New(connection),

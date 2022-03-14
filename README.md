@@ -35,6 +35,8 @@ We use a makefile to easily setup the local environment. The following commands 
     * make server : run the server 
     * make mock : generate mocks for testing the API
     * make swagger : create the swagger documentation for the API
+    * make docker-up : run docker compose up 
+    * make docker-down : run docker compose down
 
 ## Setup local environment
 
@@ -135,7 +137,7 @@ DB_SOURCE=postgresql://root:secret@postgres:5432/web-api?sslmode=disable
 
 If not already done run `make swagger` to generate the swagger documentation.
 
-You can follow and use the application via the swagger. When the app is running go to [this link](http://localhost:8080/swagger/index.html) and you will will access the swagger documentation of the API. All the routes except for creating a new user are restricted. When you created a new user and logged in via the specific route, remember to add the token in the Authorize so that all the requests used the token to be identified.
+You can follow and use the application via the swagger. When the app is running go to [this link](http://localhost:8080/swagger/index.html) and you will access the swagger documentation of the API. All the routes except for creating a new user are restricted. When you created a new user and logged in via the specific route, remember to add the token in the Authorize so that all the requests used the token to be identified.
 
 * Swagger documentation
 
