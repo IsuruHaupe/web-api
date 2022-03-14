@@ -185,7 +185,7 @@ func TestGetContactSkillsAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				//requireBodyMatchSkills(t, recorder.Body, skills)
+				requireBodyMatchSkills(t, recorder.Body, skills)
 			},
 		},
 		{
